@@ -626,6 +626,9 @@ public class CloudSim implements Simulation {
      * @param evt the event to be processed
      */
     private void processEvent(final SimEvent evt) {
+        LOGGER.debug("{}: SimEvent-Type: {}, SimEvent-Tag {}, SimEvent-Source: {}, SimEvent-Destination: {}",
+            evt.getTime(), evt.getType().name(), evt.getTag(),
+            evt.getSource().getName(), evt.getDestination().getName());
         if (evt.getTime() < clock) {
             throw new IllegalArgumentException("Past event detected.");
         }
