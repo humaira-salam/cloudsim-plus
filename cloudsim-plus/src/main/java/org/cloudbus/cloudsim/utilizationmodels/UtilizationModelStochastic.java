@@ -32,18 +32,43 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
     private ContinuousDistribution randomGenerator;
 
     /**
-     * @see #getHistory()
+     * The utilization history map, where each key is a time and
+     * each value is the resource utilization in that time.
      */
-    private Map<Double, Double> history;
+    private Map<Double, Double> historyMap;
+
+    /**
+     * The previous time the utilization was requested.
+     * The value is used to improve performance of the {@link #getUtilization(double)} method,
+     * which is crucial for large scale simulations.
+     *
+     * @see #getUtilization()
+     * @see #getUtilization(double)
+     */
+    private double previousTime;
+
+    /**
+     * The max value already stored in the {@link #previousTime}.
+     * The value is used to improve performance of the {@link #getUtilization(double)} method,
+     * which is crucial for large scale simulations.
+     */
+    private double maxPreviousTime;
+
+    /**
+     * The utilization percentage for the {@link #previousTime}.
+     * The value is used to improve performance of the {@link #getUtilization(double)} method,
+     * which is crucial for large scale simulations.
+     */
+    private double previousUtilization;
 
     /**
      * Instantiates a new utilization model stochastic
      * that defines the resource utilization in percentage.
+     *
+     * @see #setUnit(Unit)
      */
     public UtilizationModelStochastic() {
-        super();
-        setHistory(new HashMap<>());
-        setRandomGenerator(new UniformDistr());
+        this(Unit.PERCENTAGE);
     }
 
     /**
@@ -54,74 +79,94 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
      *             resource usage is defined in percentage of the Vm resource or in absolute values)
      */
     public UtilizationModelStochastic(final Unit unit) {
-        this();
-        setUnit(unit);
+        this(unit, -1);
     }
 
     /**
-     * Instantiates a new utilization model stochastic using
-     * a given seed and where the resource utilization is defined in the given unit.
+     * Instantiates a new utilization model stochastic
+     * where the resource utilization is defined in the given unit.
      *
      * @param unit the {@link Unit} that determines how the resource is used (for instance, if
      *             resource usage is defined in percentage of the Vm resource or in absolute values)
-     * @param seed the seed to generate the pseudo random utilization values
+     * @param seed the seed to initialize the random number generator.
+     *             If -1 is passed, the current time will be used.
      */
     public UtilizationModelStochastic(final Unit unit, final long seed) {
-        this(seed);
-        setUnit(unit);
+        this(unit, new UniformDistr(seed));
     }
 
     /**
-     * Instantiates a new utilization model stochastic with a specific seed.
+     * Instantiates a new utilization model stochastic based on a given Pseudo Random Number Generator (PRNG)
+     * It defines the resource utilization in percentage.
      *
-     * @param seed the seed to generate the pseudo random utilization values
+     * @param prng the Pseudo Random Number Generator (PRNG) to generate utilization values
+     * @see #setUnit(Unit)
      */
-    public UtilizationModelStochastic(final long seed) {
-        this(new UniformDistr(seed));
+    public UtilizationModelStochastic(final ContinuousDistribution prng) {
+        this(Unit.PERCENTAGE, prng);
     }
 
     /**
      * Instantiates a new utilization model stochastic based on a given Pseudo Random Number Generator (PRNG).
      *
+     * @param unit the {@link Unit} that determines how the resource is used (for instance, if
+     *             resource usage is defined in percentage of the Vm resource or in absolute values)
      * @param prng the Pseudo Random Number Generator (PRNG) to generate utilization values
      */
-    public UtilizationModelStochastic(final ContinuousDistribution prng) {
-        super();
-        setHistory(new HashMap<>());
+    public UtilizationModelStochastic(final Unit unit, final ContinuousDistribution prng) {
+        super(unit);
+        this.previousTime = -1;
+        this.previousUtilization = -1;
+        this.maxPreviousTime = -1;
+        this.historyMap = new HashMap<>();
         setRandomGenerator(prng);
     }
 
     @Override
     public double getUtilization(final double time) {
-        Double utilization = getHistory().get(time);
-        if (utilization != null) {
-            return utilization;
+        if (time < 0) {
+            throw new IllegalArgumentException("Time cannot be negative.");
         }
 
-        utilization = Math.abs(randomGenerator.sample());
-        getHistory().put(time, utilization);
+        if (time == this.previousTime) {
+            return this.previousUtilization;
+        }
+
+        final double utilization = getOrGenerateUtilization(time);
+        this.maxPreviousTime = Math.max(this.maxPreviousTime, time);
+        this.previousTime = time;
+        this.previousUtilization = utilization;
+        return utilization;
+    }
+
+    private Double getOrGenerateUtilization(final double time) {
+        if(time > this.maxPreviousTime){
+            return generateUtilization(time);
+        }
+
+        final Double utilization = historyMap.get(time);
+        if (utilization == null) {
+            return generateUtilization(time);
+        }
+
+        return utilization;
+    }
+
+    private double generateUtilization(final double time) {
+        final double utilization = Math.abs(randomGenerator.sample());
+        historyMap.put(time, utilization);
         return utilization;
     }
 
     /**
-     * Gets the utilization history map, where each key is a time and
-     * each value is the resource utilization in that time.
+     * Gets the utilization percentage for a given time from the internal {@link #historyMap}.
      *
-     * @return the utilization history
+     * @param time the time to get the utilization history for
+     * @return the stored utilization percentage or <b>null</b> if it has never been generated
+     * an utilization value for the given time
      */
-    protected Map<Double, Double> getHistory() {
-        return history;
-    }
-
-    /**
-     * Sets the utilization history map, where each key is a time and
-     * each value is the resource utilization in that time.
-     *
-     *
-     * @param history the history to set
-     */
-    protected final void setHistory(final Map<Double, Double> history) {
-        this.history = history;
+    protected Double getUtilizationHistory(final double time) {
+        return historyMap.get(time);
     }
 
     /**
@@ -131,8 +176,8 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
      * @throws UncheckedIOException when the file cannot be accessed
      */
     public void saveHistory(final String filename) {
-        try (final ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filename))){
-            oos.writeObject(getHistory());
+        try (final ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(filename))) {
+            oos.writeObject(historyMap);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -147,7 +192,7 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
     @SuppressWarnings("unchecked")
     public void loadHistory(final String filename) {
         try (final ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filename))) {
-            setHistory((Map<Double, Double>) ois.readObject());
+            historyMap = (Map<Double, Double>) ois.readObject();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (ClassNotFoundException e) {
