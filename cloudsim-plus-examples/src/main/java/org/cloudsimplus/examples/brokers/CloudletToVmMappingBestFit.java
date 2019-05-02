@@ -129,11 +129,9 @@ public class CloudletToVmMappingBestFit {
      */
     private Vm bestFitCloudletToVmMapper(final Cloudlet cloudlet) {
         if (cloudlet.isBindToVm()) {
-            if(broker0.getVmExecList().contains(cloudlet.getVm())) {
+            if(broker0.equals(cloudlet.getVm().getBroker()) && cloudlet.getVm().isCreated()) {
                 return cloudlet.getVm();
             }
-
-            return Vm.NULL;
         }
 
         return cloudlet
@@ -142,7 +140,7 @@ public class CloudletToVmMappingBestFit {
                 .stream()
                 .filter(vm -> vm.getNumberOfPes() >= cloudlet.getNumberOfPes())
                 .min(Comparator.comparingLong(Vm::getNumberOfPes))
-                .orElse(broker0.getDefaultVmMapper().apply(cloudlet));
+                .orElse(broker0.defaultVmMapper(cloudlet));
     }
 
     /**
