@@ -128,10 +128,8 @@ public class CloudletToVmMappingBestFit {
      * @return the VM selected for the Cloudlet or {@link Vm#NULL} if no suitable VM was found
      */
     private Vm bestFitCloudletToVmMapper(final Cloudlet cloudlet) {
-        if (cloudlet.isBindToVm()) {
-            if(broker0.equals(cloudlet.getVm().getBroker()) && cloudlet.getVm().isCreated()) {
-                return cloudlet.getVm();
-            }
+        if (cloudlet.isBindToVm() && broker0.equals(cloudlet.getVm().getBroker()) && cloudlet.getVm().isCreated()) {
+            return cloudlet.getVm();
         }
 
         return cloudlet
