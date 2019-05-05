@@ -61,11 +61,20 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
      */
     private double previousUtilization;
 
+    /** @see #isHistoryEnabled() */
+    private boolean historyEnabled;
+
+    /** @see #isAlwaysGenerateNewRandomUtilization() */
+    private boolean alwaysGenerateNewRandomUtilization;
+
     /**
      * Instantiates a new utilization model stochastic
      * that defines the resource utilization in percentage.
+     * The resource utilization history is disabled by default.
      *
      * @see #setUnit(Unit)
+     * @see #enableHistory()
+     * @see #isAlwaysGenerateNewRandomUtilization()
      */
     public UtilizationModelStochastic() {
         this(Unit.PERCENTAGE);
@@ -74,9 +83,12 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
     /**
      * Instantiates a new utilization model stochastic
      * where the resource utilization is defined in the given unit.
+     * The resource utilization history is disabled by default.
      *
      * @param unit the {@link Unit} that determines how the resource is used (for instance, if
      *             resource usage is defined in percentage of the Vm resource or in absolute values)
+     * @see #enableHistory()
+     * @see #isAlwaysGenerateNewRandomUtilization()
      */
     public UtilizationModelStochastic(final Unit unit) {
         this(unit, -1);
@@ -85,11 +97,14 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
     /**
      * Instantiates a new utilization model stochastic
      * where the resource utilization is defined in the given unit.
+     * The resource utilization history is disabled by default.
      *
      * @param unit the {@link Unit} that determines how the resource is used (for instance, if
      *             resource usage is defined in percentage of the Vm resource or in absolute values)
      * @param seed the seed to initialize the random number generator.
      *             If -1 is passed, the current time will be used.
+     * @see #enableHistory()
+     * @see #isAlwaysGenerateNewRandomUtilization()
      */
     public UtilizationModelStochastic(final Unit unit, final long seed) {
         this(unit, new UniformDistr(seed));
@@ -98,9 +113,12 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
     /**
      * Instantiates a new utilization model stochastic based on a given Pseudo Random Number Generator (PRNG)
      * It defines the resource utilization in percentage.
+     * The resource utilization history is disabled by default.
      *
      * @param prng the Pseudo Random Number Generator (PRNG) to generate utilization values
      * @see #setUnit(Unit)
+     * @see #enableHistory()
+     * @see #isAlwaysGenerateNewRandomUtilization()
      */
     public UtilizationModelStochastic(final ContinuousDistribution prng) {
         this(Unit.PERCENTAGE, prng);
@@ -108,10 +126,13 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
 
     /**
      * Instantiates a new utilization model stochastic based on a given Pseudo Random Number Generator (PRNG).
+     * The resource utilization history is disabled by default.
      *
      * @param unit the {@link Unit} that determines how the resource is used (for instance, if
      *             resource usage is defined in percentage of the Vm resource or in absolute values)
      * @param prng the Pseudo Random Number Generator (PRNG) to generate utilization values
+     * @see #enableHistory()
+     * @see #isAlwaysGenerateNewRandomUtilization()
      */
     public UtilizationModelStochastic(final Unit unit, final ContinuousDistribution prng) {
         super(unit);
@@ -122,13 +143,26 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
         setRandomGenerator(prng);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The method may return different utilization values
+     * for the same requested time.
+     * For performance reasons, this behaviour is dependent of the {@link #isHistoryEnabled()}
+     * and {@link #isAlwaysGenerateNewRandomUtilization()}.
+     * </p>
+     *
+     * @param time {@inheritDoc}
+     * @return {@inheritDoc}
+     * @see <a href="https://github.com/manoelcampos/cloudsim-plus/issues/197">Issue #197 for more details</a>
+     */
     @Override
     public double getUtilization(final double time) {
         if (time < 0) {
             throw new IllegalArgumentException("Time cannot be negative.");
         }
 
-        if (time == this.previousTime) {
+        if (time == this.previousTime && !alwaysGenerateNewRandomUtilization) {
             return this.previousUtilization;
         }
 
@@ -140,11 +174,11 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
     }
 
     private Double getOrGenerateUtilization(final double time) {
-        if(time > this.maxPreviousTime){
+        if(time > this.maxPreviousTime || alwaysGenerateNewRandomUtilization){
             return generateUtilization(time);
         }
 
-        final Double utilization = historyMap.get(time);
+        final Double utilization = historyEnabled ? historyMap.get(time) : null;
         if (utilization == null) {
             return generateUtilization(time);
         }
@@ -154,7 +188,10 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
 
     private double generateUtilization(final double time) {
         final double utilization = Math.abs(randomGenerator.sample());
-        historyMap.put(time, utilization);
+        if(historyEnabled) {
+            historyMap.put(time, utilization);
+        }
+
         return utilization;
     }
 
@@ -218,4 +255,92 @@ public class UtilizationModelStochastic extends UtilizationModelAbstract {
         this.randomGenerator = Objects.requireNonNull(randomGenerator);
     }
 
+    /**
+     * Checks if the history of resource utilization along simulation time
+     * is to be kept or not.
+     * @return true if the history is to be kept, false otherwise
+     * @see #enableHistory()
+     * @see #disableHistory()
+     */
+    public boolean isHistoryEnabled() {
+        return historyEnabled;
+    }
+
+    /**
+     * Enables or disables the resource utilization history,
+     * so that utilization values is stored along all the simulation execution.
+     * @param enableHistory true to enable the utilization history, false to disable
+     * @return
+     *
+     * @see #enableHistory()
+     * @see #disableHistory()
+     */
+    public UtilizationModelStochastic setHistoryEnabled(final boolean enableHistory) {
+        this.historyEnabled = enableHistory;
+        return this;
+    }
+
+    /**
+     * Enables the resource utilization history,
+     * so that utilization values is stored along all the simulation execution.
+     * @return
+     */
+    public UtilizationModelStochastic enableHistory() {
+        this.historyEnabled = true;
+        return this;
+    }
+
+    /**
+     * Disables the resource utilization history,
+     * so that utilization values is <b>NOT</b> stored along all the simulation execution.
+     * @return
+     */
+    public UtilizationModelStochastic disableHistory() {
+        this.historyEnabled = false;
+        return this;
+    }
+
+    /**
+     * Checks if every time the {@link #getUtilization()} or {@link #getUtilization(double)} methods
+     * are called, a new randomly generated utilization will be returned or not.
+     * This attribute is false by default, meaning that consecutive utilization requests
+     * for the same time may return the same previous generated utilization value.
+     * Check the documentation in the return section at the end for details.
+     *
+     * <p>Using one instance of this utilization model for every Cloudlet
+     * in a large simulation scenario may be very expensive in terms of simulation
+     * time and memory consumption. This way, the researcher may want to use a single
+     * utilization model instance for every Cloudlet.
+     * The side effect is that, if this attribute is false (the default),
+     * it will usually return the same utilization value for the same requested time
+     * for distinct Cloudlets. That commonly is not what the researcher wants.
+     * He/she usually wants that every Cloudlet has an independent resource utilization.
+     * </p>
+     *
+     * <p>To reduce simulation time and memory consumption, you can use a single utilization
+     * model instance for a given Cloudlet resource (such as CPU) and set this attribute to false.
+     * This way, it will always generate different utilization values for every time
+     * an utilization is requested (even if the same previous time is given).</p>
+     *
+     * @return true if a new randomly generated utilization will always be returned;
+     *         false if for the same requested time, the same utilization must be returned.
+     *         In this last case, it's just ensured that, for a given time, the same utilization will always be returned,
+     *         if the {@link #isHistoryEnabled() history is enabled}.
+     * @see #setAlwaysGenerateNewRandomUtilization(boolean)
+     */
+    public boolean isAlwaysGenerateNewRandomUtilization() {
+        return alwaysGenerateNewRandomUtilization;
+    }
+
+    /**
+     * Enables or disables the resource utilization history,
+     * so that utilization values is stored along all the simulation execution.
+     * @param alwaysGenerateNewRandomUtilization true to enable the utilization history, false to disable
+     * @return
+     * @see #isAlwaysGenerateNewRandomUtilization()
+     */
+    public UtilizationModelStochastic setAlwaysGenerateNewRandomUtilization(final boolean alwaysGenerateNewRandomUtilization) {
+        this.alwaysGenerateNewRandomUtilization = alwaysGenerateNewRandomUtilization;
+        return this;
+    }
 }
