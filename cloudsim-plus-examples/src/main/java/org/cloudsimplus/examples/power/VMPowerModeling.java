@@ -336,8 +336,7 @@ public class VMPowerModeling {
 
         //Replaces the default method that allocates Hosts to VMs by our own implementation
         VmAllocationPolicySimple vmAllocationPolicy = new VmAllocationPolicySimple();
-        //vmAllocationPolicy.setFindHostForVmFunction(this::findEnergyEffectiveHostForVm);
-        //vmAllocationPolicy.setFindHostForVmFunction(this::findEnergyEffectiveHostForVm);
+        vmAllocationPolicy.setFindHostForVmFunction(this::findEnergyEffectiveHostForVm);
 
         final Datacenter dc = new DatacenterSimple(simulation, hostList, vmAllocationPolicy);
         //final Datacenter dc = new DatacenterSimple(simulation, hostList, new VmAllocationPolicySimple());
