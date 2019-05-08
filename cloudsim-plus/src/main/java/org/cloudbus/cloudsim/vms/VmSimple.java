@@ -115,6 +115,12 @@ public class VmSimple extends CustomerEntityAbstract implements Vm {
      */
     private Bandwidth bw;
 
+    /** @see #getFreePesNumber() */
+    private long freePesNumber;
+
+    /** @see #getFreePesNumber() */
+    private long expectedFreePesNumber;
+
     /**
      * @see #getSubmissionDelay()
      */
@@ -239,6 +245,10 @@ public class VmSimple extends CustomerEntityAbstract implements Vm {
 
         //By default, the VM doesn't store utilization history. This has to be enabled by the user as wanted
         utilizationHistory = new VmUtilizationHistory(this, false);
+
+        //initiate number of free PEs as number of PEs of VM
+        freePesNumber = numberOfPes;
+        expectedFreePesNumber = numberOfPes;
     }
 
     @Override
@@ -268,6 +278,36 @@ public class VmSimple extends CustomerEntityAbstract implements Vm {
         final double decimals = currentTime - (int) currentTime;
         utilizationHistory.addUtilizationHistory(currentTime);
         return nextEventDelay - decimals;
+    }
+
+    @Override
+    public long getFreePesNumber() {
+        return freePesNumber;
+    }
+
+    @Override
+    public Vm setFreePesNumber(long freePes) {
+        if(freePes < 0) {
+            LOGGER.warn("Number of free PEs cannot be negative.");
+            freePes = 0;
+        }
+        freePesNumber = Math.min(freePes, getNumberOfPes());
+        return this;
+    }
+
+    @Override
+    public long getExpectedFreePesNumber() {
+        return expectedFreePesNumber;
+    }
+
+    @Override
+    public Vm setExpectedFreePesNumber(long expFreePes) {
+        if(expFreePes < 0) {
+            LOGGER.warn("Number of free PEs cannot be negative.");
+            expFreePes = 0;
+        }
+        expectedFreePesNumber = expFreePes;
+        return this;
     }
 
     @Override
