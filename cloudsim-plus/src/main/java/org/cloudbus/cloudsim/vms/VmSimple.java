@@ -325,36 +325,6 @@ public class VmSimple extends CustomerEntityAbstract implements Vm {
     }
 
     @Override
-    public long getFreePesNumber() {
-        return freePesNumber;
-    }
-
-    @Override
-    public Vm setFreePesNumber(long freePes) {
-        if(freePes < 0) {
-            LOGGER.warn("Number of free PEs cannot be negative.");
-            freePes = 0;
-        }
-        freePesNumber = Math.min(freePes, getNumberOfPes());
-        return this;
-    }
-
-    @Override
-    public long getExpectedFreePesNumber() {
-        return expectedFreePesNumber;
-    }
-
-    @Override
-    public Vm setExpectedFreePesNumber(long expFreePes) {
-        if(expFreePes < 0) {
-            LOGGER.warn("Number of free PEs cannot be negative.");
-            expFreePes = 0;
-        }
-        expectedFreePesNumber = expFreePes;
-        return this;
-    }
-
-    @Override
     public double getCpuPercentUsage() {
         return getCpuPercentUsage(getSimulation().clock());
     }
