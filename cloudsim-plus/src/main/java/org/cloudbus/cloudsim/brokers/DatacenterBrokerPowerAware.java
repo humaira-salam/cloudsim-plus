@@ -19,36 +19,16 @@ import java.util.*;
  * @since CloudSim Plus 4.3.8
  */
 public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
-
-    double[] sumMipsonHost = new double[100]; // need to improve this as , make it to the size of host list
-
-//    private List<Double> sumMipsonHost = new ArrayList<>();
-
-
     /**
      * Creates a new DatacenterBroker object.
      *
      * @param simulation The CloudSim instance that represents the simulation the Entity is related to
      */
-    public DatacenterBrokerPowerAware(final CloudSim simulation) {
-        super(simulation);
-    }
+    public DatacenterBrokerPowerAware(final CloudSim simulation) { super(simulation); }
 
     /**
-     * Processes the end of execution of a given cloudlet inside a Vm.
-     *
-     * @param evt the cloudlet that has just finished to execute and was returned to the broker
-     */
-    @Override
-    protected void processCloudletReturn(final SimEvent evt) {
-        final Cloudlet cloudlet = (Cloudlet) evt.getData();
-        long freeVmsPes = cloudlet.getVm().getExpectedFreePesNumber() + cloudlet.getNumberOfPes();
-        cloudlet.getVm().setExpectedFreePesNumber(freeVmsPes);
-        super.processCloudletReturn(evt);
-    }
-
-    /**
-     * Selects the VM with the lowest number of PEs that is able to run a given Cloudlet.
+     * Selects the VM with the lowest number of PEs that is able to run a given Cloudlet and
+     * with the host power of max 75W.
      * In case the algorithm can't find such a VM, it uses the
      * default DatacenterBroker VM mapper as a fallback.
      *
@@ -61,32 +41,25 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
             return cloudlet.getVm();
         }
 
-        Vm posVm = mapVmToCloudlet(cloudlet);
+        final Vm mappedVm = getVmCreatedList()
+            .stream()
+            .filter(x-> getPowerOfHost(x) < 75)
+            .filter(x -> x.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes())
+            .min(Comparator.comparingLong(x -> x.getExpectedFreePesNumber()))
+            .orElse(Vm.NULL);
 
-        if(posVm != Vm.NULL){
-            double hostpower = getPowerOfHost(posVm);
-            posVm.setExpectedFreePesNumber(posVm.getExpectedFreePesNumber()-cloudlet.getNumberOfPes());
-            LOGGER.debug("{}: {}: {} (PEs: {}) mapped to {} (available PEs: {}, tot PEs: {}, host power : {})", getSimulation().clock(), getName(),
-                cloudlet, cloudlet.getNumberOfPes(), posVm, posVm.getExpectedFreePesNumber(), posVm.getFreePesNumber(), hostpower);
+        if(mappedVm != Vm.NULL){
+            LOGGER.debug("{}: {}: {} (PEs: {}) mapped to {} (available PEs: {}, tot PEs: {})",
+                getSimulation().clock(), getName(), cloudlet, cloudlet.getNumberOfPes(), mappedVm,
+                mappedVm.getExpectedFreePesNumber(), mappedVm.getFreePesNumber());
         }
         else
         {
-            LOGGER.warn("{}: {}: {} (PEs: {}) couldn't be mapped to any VM",
+            LOGGER.warn(": {}: {}: {} (PEs: {}) couldn't be mapped to any VM",
                 getSimulation().clock(), getName(), cloudlet, cloudlet.getNumberOfPes());
         }
-        return posVm;
+        return mappedVm;
     }
-
-    private Vm mapVmToCloudlet(final Cloudlet cl) {
-
-        return getVmCreatedList()
-                    .stream()
-                    .filter(x-> getPowerOfHost(x) < 75)
-                    .filter(x -> x.getExpectedFreePesNumber() >= cl.getNumberOfPes())
-                    .min(Comparator.comparingLong(x -> x.getExpectedFreePesNumber()))
-                    .orElse(Vm.NULL);
-    }
-
 
     /** get list of host here
      * and estimate the power of host where VM will have new cloudlet . if the host power threshold exceeds
@@ -98,13 +71,9 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
         double wattsSec = 0;
         List<Vm> vmListOnSelHost = selHost.getVmList();
         for (Vm vmOnHost : vmListOnSelHost) {
-            long extPE1 = vmOnHost.getNumberOfPes();
-            long extPE2 = vmOnHost.getExpectedFreePesNumber();
-            expUsedHostPEs = (double)(expUsedHostPEs + vmOnHost.getNumberOfPes()-vmOnHost.getExpectedFreePesNumber());
+            expUsedHostPEs = expUsedHostPEs + vmOnHost.getNumberOfPes() - vmOnHost.getExpectedFreePesNumber();
         }
         wattsSec = selHost.getPowerModel().getPower(expUsedHostPEs/selHost.getNumberOfPes());
-        int indexHostPow = (int)selHost.getId();
-        sumMipsonHost[indexHostPow] = wattsSec;
         LOGGER.debug("{}: {}: On host: {}, Host's Total PEs: {}, Host Used PEs: {}, and Host Power at this point is: {}",
             getSimulation().clock(), getName(), selHost, selHost.getNumberOfPes(), expUsedHostPEs, wattsSec);
 
