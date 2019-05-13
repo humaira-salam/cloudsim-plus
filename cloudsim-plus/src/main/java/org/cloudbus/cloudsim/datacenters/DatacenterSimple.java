@@ -712,7 +712,7 @@ public class DatacenterSimple extends CloudSimEntity implements Datacenter {
 
         // Guarantees a minimal interval before scheduling the event
         final double minTimeBetweenEvents = getSimulation().getMinTimeBetweenEvents()+0.01;
-        nextSimulationTime = Math.max(nextSimulationTime, minTimeBetweenEvents);
+        nextSimulationTime = nextSimulationTime == 0 ? nextSimulationTime : Math.max(nextSimulationTime, minTimeBetweenEvents);
 
         if (nextSimulationTime == Double.MAX_VALUE) {
             return nextSimulationTime;
@@ -740,13 +740,11 @@ public class DatacenterSimple extends CloudSimEntity implements Datacenter {
         if (!isTimeToUpdateCloudletsProcessing()){
             return Double.MAX_VALUE;
         }
-
         double nextSimulationTime = updateHostsProcessing();
+
         if (nextSimulationTime != Double.MAX_VALUE) {
             nextSimulationTime = getCloudletProcessingUpdateInterval(nextSimulationTime);
-            schedule(this,
-                nextSimulationTime,
-                CloudSimTags.VM_UPDATE_CLOUDLET_PROCESSING);
+            schedule(this, nextSimulationTime, CloudSimTags.VM_UPDATE_CLOUDLET_PROCESSING);
         }
         setLastProcessTime(getSimulation().clock());
 
@@ -1070,4 +1068,6 @@ public class DatacenterSimple extends CloudSimEntity implements Datacenter {
     public void setPowerSupply(final DatacenterPowerSupply powerSupply) {
         this.powerSupply = powerSupply == null ? DatacenterPowerSupply.NULL : powerSupply.setDatacenter(this);
     }
+
+    public DatacenterPowerSupply getPowerSupply(){ return powerSupply; }
 }

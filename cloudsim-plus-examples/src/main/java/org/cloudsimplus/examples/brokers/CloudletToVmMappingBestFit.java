@@ -60,12 +60,12 @@ import java.util.List;
  * changing the method used for that goal,
  * without requiring to create a subclass to accomplish that.</p>
  *
- * <p>The example uses the class {@link DatacenterBrokerBestFit} that
+ * <p>The example uses the class {@link DatacenterBrokerBestFit} that performs
  * an optimal mapping of Cloudlets to VMs based on the free Pes in VMs.
  * </p>
  *
  * @author Manoel Campos da Silva Filho
- * @since CloudSim Plus 4.3.8
+ * @since CloudSim Plus 1.3.0
  */
 public class CloudletToVmMappingBestFit {
     private static final int HOSTS = 2;

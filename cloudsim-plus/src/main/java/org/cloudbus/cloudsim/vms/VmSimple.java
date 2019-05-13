@@ -8,6 +8,7 @@ package org.cloudbus.cloudsim.vms;
 
 import org.apache.commons.lang3.StringUtils;
 import org.cloudbus.cloudsim.brokers.DatacenterBroker;
+import org.cloudbus.cloudsim.brokers.DatacenterBrokerAbstract;
 import org.cloudbus.cloudsim.cloudlets.Cloudlet;
 import org.cloudbus.cloudsim.core.CustomerEntityAbstract;
 import org.cloudbus.cloudsim.core.Machine;
@@ -219,7 +220,7 @@ public class VmSimple extends CustomerEntityAbstract implements Vm {
         this.description = "";
         this.startTime = -1;
         this.stopTime = -1;
-        this.lastBusyTime = 0;
+        this.lastBusyTime = Double.MAX_VALUE;
 
         setId(id);
         setBroker(DatacenterBroker.NULL);
@@ -268,16 +269,59 @@ public class VmSimple extends CustomerEntityAbstract implements Vm {
 
         /* If the current time is some value with the decimals greater than x.0
          * (such as 45.1) and the next event delay is any integer number such as 5,
-         * then the next simulation time will be 50.1.
+         * then the next simulation time would be 50.1.
          * At time 50.1 the utilization will be reduced due to the completion of the Cloudlet.
          * At time 50.0 the Cloudlet is still running, so there is some CPU utilization.
-         * But since the next update will be only at time 50.1, the utilization
-         * at time 50.0 won't be collected to enable knowing the exact time
+         * But since the next update would be only at time 50.1, the utilization
+         * at time 50.0 wouldn't be collected to enable knowing the exact time
          * before the utilization drop.
          */
         final double decimals = currentTime - (int) currentTime;
         utilizationHistory.addUtilizationHistory(currentTime);
-        return nextEventDelay - decimals;
+        ((DatacenterBrokerAbstract)getBroker()).requestIdleVmDestruction(this);
+        if(nextEventDelay == Double.MAX_VALUE){
+            return nextEventDelay;
+        }
+
+        return nextEventDelay - decimals < 0 ? nextEventDelay : nextEventDelay - decimals;
+    }
+
+    @Override
+    public long getFreePesNumber() {
+        return freePesNumber;
+    }
+
+    /**
+     * Sets the current number of free PEs.
+     *
+     * @return the new free pes number
+     */
+    public Vm setFreePesNumber(long freePesNumber) {
+        if(freePesNumber < 0) {
+            LOGGER.debug("Number of free PEs cannot be negative, resetting to zero.");
+            freePesNumber = 0;
+        }
+        this.freePesNumber = Math.min(freePesNumber, getNumberOfPes());
+        return this;
+    }
+
+    @Override
+    public long getExpectedFreePesNumber() {
+        return expectedFreePesNumber;
+    }
+
+    /**
+     * Sets the expected free pes number before the VM starts executing. This value is updated as cloudlets are assigned to VMs but not submitted to the broker yet for running.
+     *
+     * @param expectedFreePes the expected free pes number to set
+     */
+    public Vm setExpectedFreePesNumber(long expectedFreePes) {
+        if(expectedFreePes < 0) {
+            LOGGER.debug("Number of free PEs cannot be negative, resetting to zero.");
+            expectedFreePes = 0;
+        }
+        this.expectedFreePesNumber = expectedFreePes;
+        return this;
     }
 
     @Override
@@ -408,6 +452,14 @@ public class VmSimple extends CustomerEntityAbstract implements Vm {
     @Override
     public double getLastBusyTime() {
         return this.lastBusyTime;
+    }
+
+    /**
+     * Checks if the VM has ever started some Cloudlet.
+     * @return
+     */
+    public boolean hasStartedSomeCloudlet(){
+        return lastBusyTime != Double.MAX_VALUE;
     }
 
     private void setLastBusyTime() {
