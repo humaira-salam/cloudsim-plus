@@ -21,7 +21,6 @@ import java.util.*;
 public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
 
     double[] sumMipsonHost = new double[100]; // need to improve this as , make it to the size of host list
-    List<Host> rejHost;
 
 //    private List<Double> sumMipsonHost = new ArrayList<>();
 
@@ -47,6 +46,7 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
         cloudlet.getVm().setExpectedFreePesNumber(freeVmsPes);
         super.processCloudletReturn(evt);
     }
+
     /**
      * Selects the VM with the lowest number of PEs that is able to run a given Cloudlet.
      * In case the algorithm can't find such a VM, it uses the
@@ -64,23 +64,14 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
         Vm posVm = mapVmToCloudlet(cloudlet);
 
         if(posVm != Vm.NULL){
-            double hostpower = getPowerOfHost(posVm, cloudlet);
-            if(hostpower > 75){
-//                rejHost.add(hostpower);
-                posVm = Vm.NULL;
-                LOGGER.warn(": {}: {}: {} (PEs: {}) couldn't be mapped to any VM as Power of Host reached threshold",
-                    getSimulation().clock(), getName(), cloudlet, cloudlet.getNumberOfPes());
-            }
-            else{
+            double hostpower = getPowerOfHost(posVm);
             posVm.setExpectedFreePesNumber(posVm.getExpectedFreePesNumber()-cloudlet.getNumberOfPes());
-            LOGGER.debug("{}: {}: {} (PEs: {}) mapped to {} (available PEs: {}, tot PEs: {})", getSimulation().clock(), getName(),
-                cloudlet, cloudlet.getNumberOfPes(), posVm, posVm.getExpectedFreePesNumber(), posVm.getFreePesNumber());
-            }
+            LOGGER.debug("{}: {}: {} (PEs: {}) mapped to {} (available PEs: {}, tot PEs: {}, host power : {})", getSimulation().clock(), getName(),
+                cloudlet, cloudlet.getNumberOfPes(), posVm, posVm.getExpectedFreePesNumber(), posVm.getFreePesNumber(), hostpower);
         }
-
         else
         {
-            LOGGER.warn(": {}: {}: {} (PEs: {}) couldn't be mapped to any VM",
+            LOGGER.warn("{}: {}: {} (PEs: {}) couldn't be mapped to any VM",
                 getSimulation().clock(), getName(), cloudlet, cloudlet.getNumberOfPes());
         }
         return posVm;
@@ -90,6 +81,7 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
 
         return getVmCreatedList()
                     .stream()
+                    .filter(x-> getPowerOfHost(x) < 75)
                     .filter(x -> x.getExpectedFreePesNumber() >= cl.getNumberOfPes())
                     .min(Comparator.comparingLong(x -> x.getExpectedFreePesNumber()))
                     .orElse(Vm.NULL);
@@ -99,10 +91,8 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
     /** get list of host here
      * and estimate the power of host where VM will have new cloudlet . if the host power threshold exceeds
      * then do not assign this cloudlet to this VM and search from other available VMs
-
      */
-
-    public double getPowerOfHost(final Vm vm, final Cloudlet cloudlet) {
+    private double getPowerOfHost(final Vm vm) {
         Host selHost = vm.getHost();
         double expUsedHostPEs= 0;
         double wattsSec = 0;
@@ -115,7 +105,8 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
         wattsSec = selHost.getPowerModel().getPower(expUsedHostPEs/selHost.getNumberOfPes());
         int indexHostPow = (int)selHost.getId();
         sumMipsonHost[indexHostPow] = wattsSec;
-        System.out.printf("On host : %s , Host's Total PEs:%s ,  Host Used PEs: %s , and Host Power at this point is: %s\n", selHost, selHost.getNumberOfPes(), expUsedHostPEs, wattsSec);
+        LOGGER.debug("{}: {}: On host: {}, Host's Total PEs: {}, Host Used PEs: {}, and Host Power at this point is: {}",
+            getSimulation().clock(), getName(), selHost, selHost.getNumberOfPes(), expUsedHostPEs, wattsSec);
 
         return wattsSec ;
     }

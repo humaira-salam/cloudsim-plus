@@ -24,11 +24,12 @@
 package org.cloudsimplus.examples.brokers;
 
 import ch.qos.logback.classic.Level;
+import org.apache.commons.lang3.ObjectUtils;
+import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicy;
 import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicySimple;
 import org.cloudbus.cloudsim.brokers.DatacenterBroker;
 import org.cloudbus.cloudsim.brokers.DatacenterBrokerPowerAware;
 import org.cloudbus.cloudsim.brokers.DatacenterBrokerHeuristic;
-import org.cloudbus.cloudsim.brokers.DatacenterBrokerSimple;
 import org.cloudbus.cloudsim.cloudlets.Cloudlet;
 import org.cloudbus.cloudsim.cloudlets.CloudletSimple;
 import org.cloudbus.cloudsim.core.CloudSim;
@@ -45,6 +46,7 @@ import org.cloudbus.cloudsim.resources.Pe;
 import org.cloudbus.cloudsim.resources.PeSimple;
 import org.cloudbus.cloudsim.schedulers.cloudlet.CloudletSchedulerTimeShared;
 import org.cloudbus.cloudsim.schedulers.vm.VmSchedulerTimeShared;
+import org.cloudbus.cloudsim.util.SwfWorkloadFileReader;
 import org.cloudbus.cloudsim.utilizationmodels.UtilizationModel;
 import org.cloudbus.cloudsim.utilizationmodels.UtilizationModelDynamic;
 import org.cloudbus.cloudsim.utilizationmodels.UtilizationModelFull;
@@ -56,12 +58,16 @@ import org.cloudsimplus.heuristics.CloudletToVmMappingHeuristic;
 import org.cloudsimplus.heuristics.CloudletToVmMappingSimulatedAnnealing;
 import org.cloudsimplus.heuristics.CloudletToVmMappingSolution;
 import org.cloudsimplus.heuristics.HeuristicSolution;
+import org.cloudsimplus.listeners.EventInfo;
 import org.cloudsimplus.util.Log;
 import org.cloudbus.cloudsim.power.models.PowerAware;
 import org.cloudbus.cloudsim.power.models.PowerModel;
 import org.cloudbus.cloudsim.power.models.PowerModelLinear;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * An example that uses a
@@ -87,7 +93,15 @@ import java.util.*;
 public class DatacenterBrokerPowerAwareExample {
     private static final int HOSTS_TO_CREATE = 100;
     private static final int VMS_TO_CREATE = 50;
-    private static final int CLOUDLETS_TO_CREATE = 100;
+    private static final int CLOUDLETS_TO_CREATE = 10;
+    private static final int HOST_PES = 8;
+    private static final int VM_PES = 1;
+    private static final int CLOUDLET_PES = 1;
+    private double TIME_TO_CREATE_NEW_CLOUDLET = 2;
+    private static int CLOUDLET_LENGTH;
+    private static boolean cloudletCreated;
+    final List<Cloudlet> cloudletslist = new ArrayList<>(CLOUDLETS_TO_CREATE);
+
 
     /**
      * Simulated Annealing (SA) parameters.
@@ -97,8 +111,16 @@ public class DatacenterBrokerPowerAwareExample {
     public static final double SA_COOLING_RATE = 0.003;
     public static final int    SA_NUMBER_OF_NEIGHBORHOOD_SEARCHES = 50;
 
+    /**
+     * time to finish terminate teh simulation
+     *
+     */
+//    private double TIME_TO_FINISH_SIMULATION = 5000;
+
+
     private final Simulation simulation;
-    private final List<Cloudlet> cloudletList;
+    private List<Cloudlet> cloudletList;
+    //private final boolean showAllHostUtilizationHistoryEntries;
     private List<Vm> vmList;
     private final List<Host> hostList = new ArrayList<>();
     private List<Double> arrAllHostPow = new ArrayList<>();
@@ -121,7 +143,7 @@ public class DatacenterBrokerPowerAwareExample {
     private DatacenterBroker broker;
 
     ContinuousDistribution random;
-
+    private static Random ran = new Random();
 
     /**
      * Defines the minimum percentage of power a Host uses,
@@ -134,8 +156,24 @@ public class DatacenterBrokerPowerAwareExample {
      */
     private static final int MAX_POWER_WATTS_SEC = 85; //50
 
-    boolean showAllHostUtilizationHistoryEntries = true;
+    /**
+     * The workload file to be read.
+     */
+    private static final String WORKLOAD_FILENAME = "NASA-iPSC-1993-3.1-cln.swf.gz";
 
+    /**
+     * The base dir inside the resource directory to get SWF workload files.
+     */
+    private static final String WORKLOAD_BASE_DIR = "workload/swf/";
+    /**
+     * Defines the maximum number of cloudlets to be created
+     * from the given workload file.
+     * The value -1 indicates that every job inside the workload file
+     * will be created as one cloudlet.
+     */
+    private int maximumNumberOfCloudletsToCreateFromTheWorkloadFile = -1;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CloudSim.class.getSimpleName());
 
     /**
      * If set to false, consecutive lines with the the same CPU utilization and power consumption
@@ -148,20 +186,28 @@ public class DatacenterBrokerPowerAwareExample {
      * @param args
      */
     public static void main(String[] args) {
+
+
         final long seed = 0;
         final boolean showTables = true;
-
+        final boolean showAllHostUtilizationHistoryEntries = true;
         // Heuristic
+        cloudletCreated = false;
         final CloudSim simulation0 = new CloudSim();
         final UniformDistr random0 = new UniformDistr(0, 1, seed);
         final DatacenterBrokerHeuristic broker0 = createHeuristicBroker(simulation0, random0);
-        new DatacenterBrokerPowerAwareExample(broker0, random0, showTables);
+        new DatacenterBrokerPowerAwareExample(broker0, random0, showTables, showAllHostUtilizationHistoryEntries);
+
 
         // BestFit
+        cloudletCreated = false;
         final CloudSim simulation1 = new CloudSim();
         final UniformDistr random1 = new UniformDistr(0, 1, seed);
         final DatacenterBroker broker1 = new DatacenterBrokerPowerAware(simulation1);
-        new DatacenterBrokerPowerAwareExample(broker1, random1, showTables);
+        new DatacenterBrokerPowerAwareExample(broker1, random1, showTables, showAllHostUtilizationHistoryEntries);
+
+
+
 
 //        // Simple - RoundRobin
 //        final CloudSim simulation2 = new CloudSim();
@@ -173,23 +219,39 @@ public class DatacenterBrokerPowerAwareExample {
     /**
      * Default constructor where the simulation is built.
      */
-    public DatacenterBrokerPowerAwareExample(final DatacenterBroker brkr, final ContinuousDistribution rand, final boolean showTables) {
+    public DatacenterBrokerPowerAwareExample(final DatacenterBroker brkr, final ContinuousDistribution rand, final boolean showTables, final boolean showAllHostUtilizationHistoryEntries) {
         //Enables just some level of log messages.
         Log.setLevel(Level.ERROR);
+//        this.showAllHostUtilizationHistoryEntries = showAllHostUtilizationHistoryEntries;
+
 
         System.out.println("Starting " + getClass().getSimpleName());
 
         broker = brkr;
         simulation = broker.getSimulation();
         random = rand;
+//        simulation.terminateAt(TIME_TO_FINISH_SIMULATION);
 
         final Datacenter datacenter = createDatacenter(simulation);
 
         vmList = createVms(random);
         cloudletList = createCloudlets(random);
+
+
+            /*Vms and cloudlets are created before the Datacenter and host
+            because the example is defining the hosts based on VM requirements
+            and VMs are created based on cloudlet requirements.*/
+//        createCloudletsFromWorkloadFile();
+        /**
+         * Submit the created list of VMs and cloudlets to the broker
+         */
         broker.submitVmList(vmList);
         broker.submitCloudletList(cloudletList);
 
+        /**
+         * on every clock tick check if the ocndition for generating dynamic cloudlet is satisfied
+         */
+        simulation.addOnClockTickListener(this::createDynamicCloudlet);
         simulation.start();
 
         // print simulation results
@@ -198,7 +260,7 @@ public class DatacenterBrokerPowerAwareExample {
             finishedCloudlets.sort(Comparator.comparingLong(Cloudlet::getId));
             new CloudletsTableBuilder(finishedCloudlets).build();
         }
-        printHostsCpuUtilizationAndPowerConsumption();
+        printHostsCpuUtilizationAndPowerConsumption(showAllHostUtilizationHistoryEntries);
         //printVmsCpuUtilizationAndPowerConsumption();
         print();
     }
@@ -211,12 +273,11 @@ public class DatacenterBrokerPowerAwareExample {
     }
 
     private List<Cloudlet> createCloudlets(final ContinuousDistribution rand) {
-        final List<Cloudlet> list = new ArrayList<>(CLOUDLETS_TO_CREATE);
         for(int i = 0; i < CLOUDLETS_TO_CREATE; i++){
-            list.add(createCloudlet(getRandomPesNumber(4, rand)));
+            cloudletslist.add(createCloudlet(getRandomPesNumber(4, rand)));
         }
 
-        return list;
+        return cloudletslist;
     }
 
     private List<Vm> createVms(final ContinuousDistribution random) {
@@ -266,7 +327,38 @@ public class DatacenterBrokerPowerAwareExample {
             hostList.add(createHost());
         }
 
-        return new DatacenterSimple(sim, hostList, new VmAllocationPolicySimple());
+        VmAllocationPolicySimple vmAllocationPolicy = new VmAllocationPolicySimple();
+        vmAllocationPolicy.setFindHostForVmFunction(this::findEnergyEffectiveHostForVm);
+
+//        return new DatacenterSimple(sim, hostList, new VmAllocationPolicySimple());
+
+        return new DatacenterSimple(simulation, hostList, vmAllocationPolicy);
+
+
+    }
+
+
+    /**
+     * Define a specific policy to randomly select a suitable Host to place a given VM.
+     * It implements a {@link Comparator} that randomly sorts the Hosts by returning a value between [-1..1]
+     * (according to comparator requirements).
+     * Hosts' attributes aren't even considered to ensure the randomness.
+     *
+     * @param vmAllocationPolicy the {@link VmAllocationPolicy} containing Host allocation information
+     * @param vm the {@link Vm} to find a host to be placed
+     * @return an {@link Optional} that may contain a Host in which to place a Vm, or an {@link Optional#empty()}
+     *         {@link Optional} if not suitable Host was found.
+     */
+    private Optional<Host> findEnergyEffectiveHostForVm(VmAllocationPolicy vmAllocationPolicy, Vm vm) {
+        double thr = 4000;
+
+        Optional<Host> mhost = vmAllocationPolicy
+            .getHostList()
+            .stream()
+            .filter(host -> (host.isSuitableForVm(vm) )) //&& (host.getAvailableMips() >= thr)
+            .min(Comparator.comparing(host -> (host.getPowerModel().getPower(host.getFreePesNumber()/host.getPeList().size()) <= 75)));
+
+        return mhost;
     }
 
     private Host createHost() {
@@ -278,8 +370,9 @@ public class DatacenterBrokerPowerAwareExample {
         final List<Pe> peList = new ArrayList<>();
         /*Creates the Host's CPU cores and defines the provisioner
         used to allocate each core for requesting VMs.*/
-        for(int i = 0; i < 8; i++)
+        for(int i = 0; i < HOST_PES; i++)
             peList.add(new PeSimple(mips, new PeProvisionerSimple()));
+
         final PowerModel powerModel = new PowerModelLinear(MAX_POWER_WATTS_SEC, STATIC_POWER_PERCENT);
 
         createdHosts++;
@@ -306,15 +399,46 @@ public class DatacenterBrokerPowerAwareExample {
         final long length = 400000; //in Million Structions (MI)
         final long fileSize = 300; //Size (in bytes) before execution
         final long outputSize = 300; //Size (in bytes) after execution
+        CLOUDLET_LENGTH =  ran.nextInt(500000) + 25000;
 
         //Defines how CPU, RAM and Bandwidth resources are used
         //Sets the same utilization model for all these resources.
         final UtilizationModel utilization = new UtilizationModelFull();
 
-        return new CloudletSimple(createdCloudlets++, length, numberOfPes)
+        return new CloudletSimple(createdCloudlets++, CLOUDLET_LENGTH, numberOfPes)
             .setFileSize(fileSize)
             .setOutputSize(outputSize)
             .setUtilizationModel(utilization);
+    }
+
+    private void createCloudletsFromWorkloadFile() {
+        final String fileName = WORKLOAD_BASE_DIR + WORKLOAD_FILENAME;
+        SwfWorkloadFileReader reader = SwfWorkloadFileReader.getInstance(fileName, 1000);
+        reader.setMaxLinesToRead(maximumNumberOfCloudletsToCreateFromTheWorkloadFile);
+        this.cloudletList = reader.generateWorkload();
+        broker.submitCloudletList(cloudletList);
+
+        System.out.printf("# Created %d Cloudlets for %s\n", this.cloudletList.size(), broker);
+    }
+
+    /**
+     * Simulates the dynamic arrival of a Cloudlet and a VM during simulation runtime.
+     * @param evt
+     */
+    private void createDynamicCloudlet(final EventInfo evt) {
+//        System.out.printf("\n# Received OnClockTick evt-time: %.4f, sim-clock: %.4f\n", evt.getTime(), simulation.clock());
+//        LOGGER.error("================= Starting CloudSim Plus at time : {}", simulation.clock());
+//        System.out.println("simclock time : %d", simulation.clock());
+        boolean findflag = cloudletCreated;
+        if (!cloudletCreated && (simulation.clock() >= TIME_TO_CREATE_NEW_CLOUDLET)) {
+            System.out.printf("\n# Dynamically creating 1 Cloudlet at time %.2f\n", evt.getTime());
+
+            for (int i = 0; i < 4; i++) {
+                cloudletList = createCloudlets(random);
+            }
+            broker.submitCloudletList(cloudletList);
+            cloudletCreated = true;
+        }
     }
 
     private double computeRoundRobinMappingCost(boolean doPrint) {
@@ -384,17 +508,17 @@ public class DatacenterBrokerPowerAwareExample {
      * if VMs utilization history is enabled by calling
      * {@code vm.getUtilizationHistory().enable()}.
      */
-    private void printHostsCpuUtilizationAndPowerConsumption() {
+    private void printHostsCpuUtilizationAndPowerConsumption(final boolean showAllHostUtilizationHistoryEntries) {
         System.out.println();
         for (final Host host : hostList) {
-            double hostPow = printHostCpuUtilizationAndPowerConsumption(host);
+            double hostPow = printHostCpuUtilizationAndPowerConsumption(host, showAllHostUtilizationHistoryEntries);
             arrAllHostPow.add(hostPow);
         }
         System.out.printf("Sum of all Hosts mean power consumption : %.4f Watt-Sec \n", arrAllHostPow.stream().mapToDouble(a->a).sum());
 
     }
 
-    private double printHostCpuUtilizationAndPowerConsumption(final Host host) {
+    private double printHostCpuUtilizationAndPowerConsumption(final Host host,final boolean showAllHostUtilizationHistoryEntries) {
 //        System.out.printf("Host %d CPU utilization and power consumption\n", host.getId());
 //        System.out.println("----------------------------------------------------------------------------------------------------------------------");
         final Map<Double, DoubleSummaryStatistics> utilizationPercentHistory = host.getUtilizationHistory();
@@ -427,12 +551,12 @@ public class DatacenterBrokerPowerAwareExample {
 //            host.getId(), simulation.clock(), totalWattsSec, PowerAware.wattsSecToKWattsHour(totalWattsSec));
         final double powerWattsSecMean = totalWattsSec / simulation.clock();
         double watPow = PowerAware.wattsSecToKWattsHour(powerWattsSecMean); // why is not correct
-
+//
 //        System.out.printf(
 //            "Mean %.2f Watt-Sec for %d usage samples (%.5f KWatt-Hour)\n",
 //            powerWattsSecMean, utilizationPercentHistory.size(), PowerAware.wattsSecToKWattsHour(powerWattsSecMean));
 //        System.out.println("----------------------------------------------------------------------------------------------------------------------\n");
-        return powerWattsSecMean;
+        return totalWattsSec;//powerWattsSecMean;
     }
 
     private void printVmsCpuUtilizationAndPowerConsumption() {
