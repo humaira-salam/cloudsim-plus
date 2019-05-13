@@ -292,6 +292,7 @@ public class DatacenterBrokersMappingComparison {
         for (Cloudlet c : cloudletList) {
             if (c.isBoundToVm()) {
                 mappingSolution.bindCloudletToVm(c, c.getVm());
+                numBoundCloudlets++;
             }
         }
 
@@ -299,6 +300,7 @@ public class DatacenterBrokersMappingComparison {
             printSolution(
                 "Best fit solution used by DatacenterBrokerSimple class",
                 mappingSolution, false);
+            System.out.printf("Total cloudlets bound to a VM %d\n", numBoundCloudlets);
         }
         return mappingSolution.getCost();
     }
