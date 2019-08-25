@@ -46,6 +46,7 @@ import org.cloudbus.cloudsim.vms.Vm;
 import org.cloudbus.cloudsim.vms.VmSimple;
 import org.cloudsimplus.builders.tables.CloudletsTableBuilder;
 
+import org.cloudsimplus.util.Log;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
@@ -97,7 +98,7 @@ public class PlanetLabExample1 {
     public PlanetLabExample1() {
         /*Enables just some level of log messages.
           Make sure to import org.cloudsimplus.util.Log;*/
-        //Log.setLevel(ch.qos.logback.classic.Level.WARN);
+        Log.setLevel(ch.qos.logback.classic.Level.WARN);
 
         simulation = new CloudSim();
         datacenter0 = createDatacenter();

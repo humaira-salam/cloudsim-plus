@@ -61,6 +61,9 @@ public abstract class CloudletAbstract extends CustomerEntityAbstract implements
     /** @see #getExecStartTime() */
     private double execStartTime;
 
+    /** @see #setSubmissionTime()*/
+    private double submissionTime;
+
     /** @see #getPriority() */
     private int priority;
 
@@ -454,6 +457,20 @@ public abstract class CloudletAbstract extends CustomerEntityAbstract implements
         return true;
     }
 
+
+    /**
+     * Gets the time of this Cloudlet resides in a given Datacenter (from
+     * arrival time until departure time).
+     *
+     * @param datacenter a Datacenter entity
+     * @return the wall-clock time or 0 if the Cloudlet has never been executed there
+     * @see <a href="https://en.wikipedia.org/wiki/Elapsed_real_time">Elapsed real time (wall-clock time)</a>
+     */
+    @Override
+    public double getWallClockTime(final Datacenter datacenter) {
+        return getDatacenterInfo(datacenter).getWallClockTime();
+    }
+
     @Override
     public boolean setStatus(final Status newStatus) {
         // if the new status is same as current one, then ignore the rest
@@ -526,16 +543,20 @@ public abstract class CloudletAbstract extends CustomerEntityAbstract implements
         return getDatacenterInfo(datacenter).getArrivalTime();
     }
 
+
     /**
-     * Gets the time of this Cloudlet resides in a given Datacenter (from
-     * arrival time until departure time).
-     *
-     * @param datacenter a Datacenter entity
-     * @return the wall-clock time or 0 if the Cloudlet has never been executed there
-     * @see <a href="https://en.wikipedia.org/wiki/Elapsed_real_time">Elapsed real time (wall-clock time)</a>
+     * Set submission time of the cloudlet
      */
-    protected double getWallClockTime(final Datacenter datacenter) {
-        return getDatacenterInfo(datacenter).getWallClockTime();
+    public Cloudlet setSubmissionTime(double submisionTime){
+        this.submissionTime = submisionTime;
+        return this;
+    }
+
+    /**
+     * Get submission time of the cloudlet
+     */
+    public double getSubmissionTime(){
+        return submissionTime;
     }
 
     /**

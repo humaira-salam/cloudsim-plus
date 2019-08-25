@@ -312,6 +312,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
         cloudletSubmittedList.addAll(list);
         setSimulationForCloudletUtilizationModels(list);
         cloudletWaitingList.addAll(list);
+//        setCloudletSubmissionTime(cloudletWaitingList);
         wereThereWaitingCloudlets = true;
 
         if (!isStarted()) {
@@ -329,6 +330,17 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
         } else
             LOGGER.info("Waiting creation of {} VMs to send Cloudlets creation request to Datacenter.", vmWaitingList.size());
     }
+
+//    /**
+//     * Note the cloudlet submission time in Network
+//     */
+//    private void setCloudletSubmissionTime(List<Cloudlet> list){
+//        for(Cloudlet cl: list)
+//        {
+//            cl.setSubmissionTime(getSimulation().clock());
+//        }
+//    }
+
 
     /**
      * Checks if all VMs submitted with no delay were created.
@@ -485,7 +497,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
     private void processCloudletReady(final SimEvent evt){
         final Cloudlet cloudlet = (Cloudlet)evt.getData();
         if(cloudlet.getStatus() == Cloudlet.Status.PAUSED)
-             logCloudletStatusChange(cloudlet, "resume execution of");
+            logCloudletStatusChange(cloudlet, "resume execution of");
         else logCloudletStatusChange(cloudlet, "start executing");
 
         cloudlet.getVm().getCloudletScheduler().cloudletReady(cloudlet);
@@ -704,11 +716,18 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
             cloudlet.getVm().getExpectedFreePesNumber() + cloudlet.getNumberOfPes());
         LOGGER.info("{}: {}: {} finished and returned to broker.", getSimulation().clock(), getName(), cloudlet);
 
+        if (cloudletWaitingList.isEmpty()) {
+            //do nothing
+            LOGGER.info("{}: {}: There are no postponed cloudlets to map. All created cloudlets are mapped to Vms",
+                getSimulation().clock(), getName());
+        } else {
+           requestDatacentersToCreateWaitingCloudlets();
+        }
+
         if (cloudlet.getVm().getCloudletScheduler().isEmpty()) {
             requestIdleVmDestruction(cloudlet.getVm());
             return;
         }
-
         requestVmDestructionAfterAllCloudletsFinished();
     }
 
@@ -815,8 +834,8 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
         if (delay <= 0) {
             return schedulingInterval <= 0 ?
-                        getSimulation().getMinTimeBetweenEvents() :
-                        schedulingInterval;
+                getSimulation().getMinTimeBetweenEvents() :
+                schedulingInterval;
         }
 
         return Math.min(Math.abs(delay), Math.abs(schedulingInterval));
@@ -829,8 +848,8 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
     private boolean isBrokerIdle() {
         return cloudletWaitingList.isEmpty() &&
-               vmWaitingList.isEmpty() &&
-               vmExecList.isEmpty();
+            vmWaitingList.isEmpty() &&
+            vmExecList.isEmpty();
     }
 
     /**
@@ -928,6 +947,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
             } else {
                 ((VmSimple) lastSelectedVm).setExpectedFreePesNumber(
                     lastSelectedVm.getExpectedFreePesNumber() - cloudlet.getNumberOfPes());
+//                final double hostpow = lastSelectedVm.getPowerOfHost;
             }
 
 
@@ -938,10 +958,14 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
             entity.setLastTriedDatacenter(getDatacenter(lastSelectedVm));
             cloudletsCreatedList.add(cloudlet);
             successfullySubmitted.add(cloudlet);
+//            cloudletWaitingList.remove(cloudlet);
         }
 
         cloudletWaitingList.removeAll(successfullySubmitted);
-        allWaitingCloudletsSubmittedToVm();
+        List<Cloudlet> waitingcle= cloudletWaitingList;
+        if (cloudletWaitingList.isEmpty()) {
+            allWaitingCloudletsSubmittedToVm();
+        }
     }
 
     private void logPostponingCloudletExecution(final Cloudlet cloudlet) {

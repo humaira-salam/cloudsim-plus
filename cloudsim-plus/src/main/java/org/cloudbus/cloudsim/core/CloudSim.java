@@ -238,6 +238,7 @@ public class CloudSim implements Simulation {
         LOGGER.info("Simulation: No more future events{}", System.lineSeparator());
 
         finishSimulation();
+//        double finishTime = getSimFinishTime();
         printSimulationFinished();
 
         return clock;
@@ -324,7 +325,7 @@ public class CloudSim implements Simulation {
                 "maybe it's because you set a too long termination time and new events aren't arriving so far.",
                 terminationTime, lastCloudletProcessingUpdate);
         }
-        LOGGER.info("{}================== {}{} =================={}", System.lineSeparator(), msg1, msg2, System.lineSeparator());
+        LOGGER.error("{}================== {}{} =================={}", System.lineSeparator(), msg1, msg2, System.lineSeparator());
 
     }
 
@@ -361,6 +362,9 @@ public class CloudSim implements Simulation {
     public double getTerminationTime(){
         return terminationTime;
     }
+
+    @Override
+    public double getSimFinishTime() { return clock;}
 
     @Override
     public double getMinTimeBetweenEvents() {

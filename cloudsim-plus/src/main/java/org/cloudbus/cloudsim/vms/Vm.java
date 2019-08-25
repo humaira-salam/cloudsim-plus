@@ -93,6 +93,8 @@ public interface Vm extends Machine, UniquelyIdentifiable, Comparable<Vm>, Custo
      */
     long getExpectedFreePesNumber();
 
+    Vm setExpectedFreePesNumber(long expectedFreePesNumber);
+
     /**
      * Gets the current requested bw.
      *

@@ -100,6 +100,8 @@ final class CloudletNull implements Cloudlet {
     @Override public double getArrivalTime(Datacenter datacenter) {
         return 0.0;
     }
+    @Override public Cloudlet setSubmissionTime(double submissionTime) {return Cloudlet.NULL;}
+    @Override public double getSubmissionTime() { return 0.0; }
     @Override public long getJobId() { return 0; }
     @Override public void setJobId(long jobId) {/**/}
     @Override public UtilizationModel getUtilizationModelBw() {
@@ -207,6 +209,9 @@ final class CloudletNull implements Cloudlet {
     }
     @Override public boolean setWallClockTime(double wallTime, double actualCpuTime) {
         return false;
+    }
+    @Override public double getWallClockTime(Datacenter datacenter) {
+        return 0.0;
     }
     @Override public void setExecStartTime(double clockTime) {/**/}
     @Override public Cloudlet addOnStartListener(EventListener<CloudletVmEventInfo> listener) { return this; }

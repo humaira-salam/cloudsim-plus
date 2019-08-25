@@ -62,9 +62,12 @@ import org.cloudsimplus.listeners.EventInfo;
 import org.cloudsimplus.util.Log;
 import org.cloudbus.cloudsim.distributions.ContinuousDistribution;
 
+import com.mathworks.toolbox.javabuilder.MWArray;
+import predictingFunctionJava.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.io.IOException;
 
 
 /**
@@ -121,7 +124,7 @@ public class VMPowerModeling {
 
 
     private static Random ran = new Random();
-    private static final int CLOUDLETS = 6;
+    private static final int CLOUDLETS = 1;
     private static final int CLOUDLET_PES = 1;
     private static int CLOUDLET_LENGTH = ran.nextInt(6) + 5; //new UniformDistr(25000,70000); //65000; //MI for 10 % is 7.3*e11
 
@@ -608,7 +611,7 @@ public class VMPowerModeling {
 
     private Cloudlet createCloudlet() {
         UtilizationModel um = new UtilizationModelDynamic(0.2);
-        CLOUDLET_LENGTH =  ran.nextInt(50000) + 25000;
+        CLOUDLET_LENGTH =  10000;//ran.nextInt(50000) + 25000;
         Cloudlet cloudlet =
             new CloudletSimple(CLOUDLET_LENGTH, CLOUDLET_PES)
             .setFileSize(1024)

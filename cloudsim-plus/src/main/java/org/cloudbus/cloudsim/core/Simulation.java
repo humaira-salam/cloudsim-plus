@@ -114,6 +114,12 @@ public interface Simulation {
     SimEvent findFirstDeferred(SimEntity dest, Predicate<SimEvent> p);
 
     /**
+     * Get Finish time of teh simulation
+     */
+    double getSimFinishTime();
+
+
+    /**
      * Gets a new copy of initial simulation Calendar.
      *
      * @return a new copy of Calendar object

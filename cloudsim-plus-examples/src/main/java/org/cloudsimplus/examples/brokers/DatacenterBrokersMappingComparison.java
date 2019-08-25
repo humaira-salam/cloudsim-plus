@@ -288,7 +288,7 @@ public class DatacenterBrokersMappingComparison {
             new CloudletToVmMappingSimulatedAnnealing(SA_INITIAL_TEMPERATURE, random);
 
         final CloudletToVmMappingSolution mappingSolution = new CloudletToVmMappingSolution(heuristic);
-        int i = 0;
+        int numBoundCloudlets = 0;
         for (Cloudlet c : cloudletList) {
             if (c.isBoundToVm()) {
                 mappingSolution.bindCloudletToVm(c, c.getVm());

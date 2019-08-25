@@ -3,10 +3,12 @@ package org.cloudbus.cloudsim.brokers;
 import org.cloudbus.cloudsim.cloudlets.Cloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.core.events.SimEvent;
+import org.cloudbus.cloudsim.resources.Pe;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.cloudbus.cloudsim.hosts.Host;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 
 /**
@@ -43,10 +45,17 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
 
         final Vm mappedVm = getVmCreatedList()
             .stream()
-            .filter(x-> getPowerOfHost(x) < 75)
+            .filter(x-> getExpPowerOfHost(x) < 70)
             .filter(x -> x.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes())
             .min(Comparator.comparingLong(x -> x.getExpectedFreePesNumber()))
             .orElse(Vm.NULL);
+
+        Optional<Vm> TempVm = getVmCreatedList()
+            .stream()
+            .filter(x-> getExpPowerOfHost(x) < 70)
+            .filter(x -> x.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes())
+            .min(Comparator.comparingLong(x -> x.getExpectedFreePesNumber()));
+
 
         if(mappedVm != Vm.NULL){
             LOGGER.debug("{}: {}: {} (PEs: {}) mapped to {} (available PEs: {}, tot PEs: {})",
@@ -55,7 +64,7 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
         }
         else
         {
-            LOGGER.warn(": {}: {}: {} (PEs: {}) couldn't be mapped to any VM",
+            LOGGER.debug(": {}: {}: {} (PEs: {}) couldn't be mapped to any VM",
                 getSimulation().clock(), getName(), cloudlet, cloudlet.getNumberOfPes());
         }
         return mappedVm;
@@ -65,7 +74,7 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
      * and estimate the power of host where VM will have new cloudlet . if the host power threshold exceeds
      * then do not assign this cloudlet to this VM and search from other available VMs
      */
-    private double getPowerOfHost(final Vm vm) {
+    private double getExpPowerOfHost(final Vm vm) {
         Host selHost = vm.getHost();
         double expUsedHostPEs= 0;
         double wattsSec = 0;

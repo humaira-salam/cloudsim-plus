@@ -8,6 +8,7 @@
 package org.cloudbus.cloudsim.power.models;
 
 import org.cloudbus.cloudsim.hosts.Host;
+import org.cloudbus.cloudsim.vms.Vm;
 
 /**
  * Provides a model for power consumption of hosts, depending on utilization of a critical system
@@ -51,6 +52,7 @@ public interface PowerModel extends PowerAware {
         @Override public double getMaxPower() { return 0; }
         @Override public double getPower() { return 0; }
         @Override public double getPower(double utilization) throws IllegalArgumentException { return 0; }
+//        @Override public double getExpPowerOfHost(Vm vm) { return 0; }
         @Override public double getEnergyLinearInterpolation(double fromUtilization, double toUtilization, double time) { return 0; }
     };
 
@@ -77,6 +79,13 @@ public interface PowerModel extends PowerAware {
      * between [0 and 1]
      */
     double getPower(double utilization) throws IllegalArgumentException;
+
+    /**
+     * Get host expected power
+     *
+     */
+
+//    double getExpPowerOfHost(Vm vm);
 
     /**
      * Gets an <b>estimation</b> of energy consumption using linear interpolation of the utilization

@@ -152,7 +152,7 @@ public class PoissonDistr implements ContinuousDistribution {
      *   If you are generating all random event arrivals at the beginning of the simulation,
      *   you need to add the previous time to the next event arrival time.
      *   This way, the arrival time of the previous event is added to the next one.
-     *   For instance, if consecutive calls to this method return the values 60 and 25, from the current time, that means:
+     *   For instance, if consecutive calls to this msampleethod return the values 60 and 25, from the current time, that means:
      *       (i) the first event will arrive in 60 seconds;
      *       (ii) the next event will arrive in 85 seconds, that is 25 seconds after the first one.
      *   </li>
@@ -172,7 +172,7 @@ public class PoissonDistr implements ContinuousDistribution {
      */
     @Override
     public double sample() {
-        return Math.exp(1.0 - rand.sample()) / getLambda();
+        return -Math.log(1.0 - rand.sample()) / getLambda();
     }
 
     @Override

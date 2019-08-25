@@ -755,6 +755,20 @@ public interface Cloudlet extends UniquelyIdentifiable, Comparable<Cloudlet>, Cu
     boolean setWallClockTime(double wallTime, double actualCpuTime);
 
     /**
+     *Gets the wall clock time the cloudlet spent exexuting on the current Datacenter
+     * @param datacenter
+     * @return
+     */
+    double getWallClockTime(final Datacenter datacenter);
+
+    /**
+     *Set Submission Time of the cloudlet in a network
+     */
+    Cloudlet setSubmissionTime(double submissionTime);
+
+    double getSubmissionTime();
+
+    /**
      * Sets the {@link #getExecStartTime() latest execution start time} of this Cloudlet.
      * <br>
      * <b>NOTE:</b> With new functionalities, such as being able to cancel,

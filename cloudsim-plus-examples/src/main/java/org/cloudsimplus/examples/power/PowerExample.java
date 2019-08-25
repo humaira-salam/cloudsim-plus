@@ -24,6 +24,7 @@
 package org.cloudsimplus.examples.power;
 
 import ch.qos.logback.classic.Level;
+import com.mathworks.toolbox.javabuilder.MWArray;
 import org.cloudbus.cloudsim.allocationpolicies.VmAllocationPolicySimple;
 import org.cloudbus.cloudsim.brokers.DatacenterBroker;
 import org.cloudbus.cloudsim.brokers.DatacenterBrokerSimple;
@@ -54,11 +55,9 @@ import org.cloudbus.cloudsim.vms.VmSimple;
 import org.cloudsimplus.builders.tables.CloudletsTableBuilder;
 import org.cloudsimplus.examples.resourceusage.VmsRamAndBwUsageExample;
 import org.cloudsimplus.util.Log;
-
-import java.util.ArrayList;
-import java.util.DoubleSummaryStatistics;
-import java.util.List;
-import java.util.Map;
+import predictingFunctionJava.Class1;
+import java.lang.reflect.Array;
+import java.util.*;
 
 /**
  * An example to show power consumption of Hosts and VMs.
@@ -107,26 +106,26 @@ public class PowerExample {
      * to keep Hosts CPU utilization history records.
      */
     private static final int SCHEDULING_INTERVAL = 10;
-    private static final int HOSTS = 2;
-    private static final int HOST_PES = 8;
+    private static final int HOSTS = 1;
+    private static final int HOST_PES = 4;
 
     private static final int VMS = 4;
-    private static final int VM_PES = 4;
+    private static final int VM_PES = 1;
 
-    private static final int CLOUDLETS = 8;
-    private static final int CLOUDLET_PES = 2;
-    private static final int CLOUDLET_LENGTH = 50000;
+    private static final int CLOUDLETS = 6;
+    private static final int CLOUDLET_PES = 1;
+    private static final int CLOUDLET_LENGTH = 700000;
 
     /**
      * Defines the minimum percentage of power a Host uses,
      * even it it's idle.
      */
-    private static final double STATIC_POWER_PERCENT = 0.7;
+    private static final double STATIC_POWER_PERCENT = 0;
 
     /**
      * The max number of watt-second (Ws) of power a Host uses.
      */
-    private static final int MAX_POWER_WATTS_SEC = 50;
+    private static final int MAX_POWER_WATTS_SEC = 53;
 
     private final CloudSim simulation;
     private DatacenterBroker broker0;
@@ -207,12 +206,17 @@ public class PowerExample {
      * </p>
      */
     private void printVmsCpuUtilizationAndPowerConsumption() {
+        Class1 powPredFunc= null;
+        Object[] powPred = null;
+
+        double[] testData;
         for (Vm vm : vmList) {
             System.out.println("Vm " + vm.getId() + " at Host " + vm.getHost().getId() + " CPU Usage and Power Consumption");
             System.out.println("----------------------------------------------------------------------------------------------------------------------");
             double vmPower; //watt-sec
             double utilizationHistoryTimeInterval, prevTime = 0;
             final UtilizationHistory history = vm.getUtilizationHistory();
+
             for (final double time : history.getHistory().keySet()) {
                 utilizationHistoryTimeInterval = time - prevTime;
                 vmPower = history.powerConsumption(time);
@@ -222,8 +226,95 @@ public class PowerExample {
                     time, history.cpuUsageFromHostCapacity(time) *100, vmPower, utilizationHistoryTimeInterval, wattsPerInterval);
                 prevTime = time;
             }
+
             System.out.println();
         }
+//        for (Vm vm : vmList) {
+            int[] arrSize = new int[4];
+            final UtilizationHistory history1 = vmList.get(0).getUtilizationHistory();
+            final UtilizationHistory history2 = vmList.get(1).getUtilizationHistory();
+            final UtilizationHistory history3 = vmList.get(2).getUtilizationHistory();
+            final UtilizationHistory history4 = vmList.get(3).getUtilizationHistory();
+
+            final Object[] keyArr1 = vmList.get(0).getUtilizationHistory().getHistory().keySet().toArray();
+            final Object[] keyArr2 = vmList.get(1).getUtilizationHistory().getHistory().keySet().toArray();
+            final Object[] keyArr3 = vmList.get(2).getUtilizationHistory().getHistory().keySet().toArray();
+            final Object[] keyArr4 = vmList.get(3).getUtilizationHistory().getHistory().keySet().toArray();
+
+//            double keyVal = history1.getHistory().get(keys[0]);
+             arrSize[0] = keyArr1.length;
+             arrSize[1] = keyArr2.length;
+             arrSize[2] = keyArr3.length;
+             arrSize[3] = keyArr4.length;
+             OptionalInt maxSize = Arrays.stream(arrSize).max();
+             if (maxSize.isPresent()) {
+//                 int maxSize= 4;
+                 for (int i = 0; i < maxSize.getAsInt(); i++) {
+                     double keyVal = history1.getHistory().get(keyArr1[i]);
+
+                     double w = 6.33 * Math.pow(10, 3) * history1.getHistory().get(keyArr1[i]);
+                     double x = 6.33 * Math.pow(10, 3) * history2.getHistory().get(keyArr2[i]);
+                     double y = 6.33 * Math.pow(10, 3) * history3.getHistory().get(keyArr3[i]);
+                     double z = 6.33 * Math.pow(10, 3) * history4.getHistory().get(keyArr4[i]);
+
+                     testData = new double[]{w, x, y, z};
+//                     testData = new double[]{3725.36318716667, 2473.59933525000, 1213.89142435000, 0};
+
+                     try {
+                         powPredFunc = new Class1();
+
+                         powPred = powPredFunc.predictingFunctionJava(1, testData);
+                         System.out.println("Length of powPred is: " + powPred.length);
+                         System.out.println("finished try block");
+
+                         System.out.println(powPred[0]);
+
+                     } catch (Exception e) {
+                         System.out.println("Exception: " + e.toString());
+                     } finally {
+//                         Double resNum = (Double)powPred;
+                         MWArray.disposeArray(powPred);
+
+                     }
+                 }
+//                 powPred;
+             }
+
+
+
+
+
+
+//        }
+
+//        for (final double vmUsage : history1.getHistory().values()) {
+//
+//            //get the power from non-linear model
+//            double percUsage = vmUsage;
+//            double w = 6.33 * Math.pow(10, 3) * percUsage;
+//            double x = 6.33 * Math.pow(10, 3) * percUsage;
+//            double y = 6.33 * Math.pow(10, 3) * percUsage;
+//            double z = 6.33 * Math.pow(10, 3) * percUsage;
+//
+//            testData = new double[]{w, x, y, z};
+//            try {
+//                powPredFunc = new Class1();
+//
+//                powPred = powPredFunc.predictingFunctionJava(1, testData);
+//                System.out.println("Length of powPred is: " + powPred.length);
+//                System.out.println("finished try block");
+//
+//                System.out.println(powPred[0]);
+//
+//            } catch (Exception e) {
+//                System.out.println("Exception: " + e.toString());
+//            } finally {
+//                MWArray.disposeArray(powPred);
+//
+//            }
+//        }
+
+
     }
 
     /**
@@ -295,14 +386,14 @@ public class PowerExample {
         final List<Pe> peList = new ArrayList<>(HOST_PES);
         //List of Host's CPUs (Processing Elements, PEs)
         for (int i = 0; i < HOST_PES; i++) {
-            peList.add(new PeSimple(1000, new PeProvisionerSimple()));
+            peList.add(new PeSimple(6.33 * Math.pow(10, 3), new PeProvisionerSimple()));
         }
 
         final PowerModel powerModel = new PowerModelLinear(MAX_POWER_WATTS_SEC, STATIC_POWER_PERCENT);
 
-        final long ram = 2048; //in Megabytes
+        final long ram = 31000; //in Megabytes
         final long bw = 10000; //in Megabits/s
-        final long storage = 1000000; //in Megabytes
+        final long storage = 916000; //in Megabytes
         final ResourceProvisioner ramProvisioner = new ResourceProvisionerSimple();
         final ResourceProvisioner bwProvisioner = new ResourceProvisionerSimple();
         final VmScheduler vmScheduler = new VmSchedulerTimeShared();
@@ -322,8 +413,8 @@ public class PowerExample {
     private List<Vm> createVms() {
         final List<Vm> list = new ArrayList<>(VMS);
         for (int i = 0; i < VMS; i++) {
-            Vm vm = new VmSimple(i, 1000, VM_PES);
-            vm.setRam(512).setBw(1000).setSize(10000)
+            Vm vm = new VmSimple(i, 6.33 * Math.pow(10, 3), VM_PES);
+            vm.setRam(1900).setBw(1000).setSize(49000)
               .setCloudletScheduler(new CloudletSchedulerTimeShared());
             vm.getUtilizationHistory().enable();
             list.add(vm);
@@ -340,7 +431,7 @@ public class PowerExample {
         final UtilizationModel utilization = new UtilizationModelDynamic(0.2);
         for (int i = 0; i < CLOUDLETS; i++) {
             //Sets half of the cloudlets with the defined length and the other half with the double of it
-            final long length = i < CLOUDLETS / 2 ? CLOUDLET_LENGTH : CLOUDLET_LENGTH * 2;
+            final long length = CLOUDLET_LENGTH; // i < CLOUDLETS / 2 ? CLOUDLET_LENGTH : CLOUDLET_LENGTH * 2;
             Cloudlet cloudlet =
                 new CloudletSimple(i, length, CLOUDLET_PES)
                     .setFileSize(1024)
