@@ -97,17 +97,17 @@ import java.util.stream.DoubleStream;
  * @since CloudSim Plus 1.0
  */
 public class DatacenterBrokerPowerAwareExamplePoisson {
-    private static final int HOSTS_TO_CREATE = 100;
-    private static final int VMS_TO_CREATE = HOSTS_TO_CREATE*10;
-    private static final int CLOUDLETS_TO_CREATE = 10;
-    private static final int DYNAMIC_CLOUDLETS_TO_CREATE = 10;
-    private static final int HOST_PES =128;
+    private static final int HOSTS_TO_CREATE = 50;
+    private static final int VMS_TO_CREATE = HOSTS_TO_CREATE*3;
+    private static final int CLOUDLETS_TO_CREATE = 20;
+    private static final int DYNAMIC_CLOUDLETS_TO_CREATE = 20;
+    private static final int HOST_PES = 8;
     private static final int VM_PES = 4;
     private static final int CLOUDLET_PES = 1;
     private double TIME_TO_CREATE_NEW_CLOUDLET = 1;
     private double MAX_TIME_FOR_CLOUDLET_ARRIVAL = 0; // -1 indicates cloudlets were created using MAX_CLOUDLETS_TO_CREATE;
-    private static double MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE = 10;
-    private static final int MAX_CLOUDLETS_TO_CREATE = 100; //-1 here indicate that max time 'MAX_TIME_FOR_CLOUDLET_ARRIVAL' was used to create maximum cloudlets
+    private static double MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE = 0;
+    private static final int MAX_CLOUDLETS_TO_CREATE = 500; //-1 here indicate that max time 'MAX_TIME_FOR_CLOUDLET_ARRIVAL' was used to create maximum cloudlets
 
 
     private static int CLOUDLET_LENGTH;
@@ -207,17 +207,17 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
         /**
          * number of repetitions
          */
-        int numRep = 2;
+        int numRep = 5;
         final boolean verbose = true;
         final boolean showAllHostUtilizationHistoryEntries = true;
-        int[] rateArr = new int[]{1, 2, 4, 6, 8, 10, 12, 14, 15};
+        int[] rateArr = new int[]{0, 1, 2, 4, 6, 8, 10, 12, 14, 15};
         int rateSz = 1; //rateArr.length;
         double clMax;
         logFileCreated = false;
 
         for(int j = 0; j < rateSz; j++) {
             clMax = rateArr[j];
-            for(int i = 1; i < numRep; i++) {
+            for(int i = 0; i < numRep; i++) {
                 final long seed = System.currentTimeMillis();//0
 
                 // BestFit
@@ -240,16 +240,16 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
     //            logFileCreated = true;
     //        }
 
-//                // Simple - RoundRobin
-//    //        logFileCreated = false;
-//    //            for(int i = 1; i < numRep; i++) {
-//                cloudletCreated = false;
-//                final CloudSim simulation2 = new CloudSim();
-//                final UniformDistr random2 = new UniformDistr(0, 1, seed);
-//                final DatacenterBroker broker2 = new DatacenterBrokerSimple(simulation2);
-//                new DatacenterBrokerPowerAwareExamplePoisson(broker2, random2, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
-//
-//
+                // Simple - RoundRobin
+    //        logFileCreated = false;
+    //            for(int i = 1; i < numRep; i++) {
+                cloudletCreated = false;
+                final CloudSim simulation2 = new CloudSim();
+                final UniformDistr random2 = new UniformDistr(0, 1, seed);
+                final DatacenterBroker broker2 = new DatacenterBrokerSimple(simulation2);
+                new DatacenterBrokerPowerAwareExamplePoisson(broker2, random2, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
+
+
 //                logFileCreated = true;
              }
             logFileCreated = false;
@@ -279,13 +279,13 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
 
         vmList = createVms(random);
 //        cloudletList = createCloudlets(random);
-//        cloudletList = getCloudletListfromPoisson(random);
+        cloudletList = getCloudletListfromPoisson(random);
 
 
             /*Vms and cloudlets are created before the Datacenter and host
             because the example is defining the hosts based on VM requirements
             and VMs are created based on cloudlet requirements.*/
-        createCloudletsFromWorkloadFile();
+//        createCloudletsFromWorkloadFile();
         /**
          * Submit the created list of VMs and cloudlets to the broker
          */
@@ -386,16 +386,19 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
     private List<Cloudlet> getCloudletListfromPoisson(final ContinuousDistribution rand){
         //creates a poisson process that checks the arrival of 1 (k) cloudlet
         //1 is the default value for k
-        PoissonDistr poisson = new PoissonDistr(MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE, 0);
+//        PoissonDistr poisson = new PoissonDistr(MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE, 0);
         int totalArrivedCustomers = 0;
+        int numcl = 1;
         double sampTime = 0;
         while( totalArrivedCustomers <= MAX_CLOUDLETS_TO_CREATE){
-            totalArrivedCustomers += poisson.getK();
-            sampTime = sampTime + poisson.sample();
-            Cloudlet cloudlet = createCloudlet(getRandomPesNumber(32, rand)); //getRandomPesNumber(4, rand) //CLOUDLET_PES
-            cloudlet.setSubmissionDelay(sampTime);
-            cloudlet.setSubmissionTime(sampTime);
+//            totalArrivedCustomers += poisson.getK();
+//            sampTime = sampTime + poisson.sample();
+            totalArrivedCustomers +=numcl;
+            Cloudlet cloudlet = createCloudlet(getRandomPesNumber(4, rand));  //CLOUDLET_PES
+            cloudlet.setSubmissionDelay(0); //(sampTime);
+            cloudlet.setSubmissionTime(0); //(sampTime);
             cloudletList.add(cloudlet);
+
 //            System.out.printf("%d cloudlets arrived at minute %f\n", poisson.getK(), sampTime);
         }
         System.out.printf("\n\t%d cloudlets have arrived in time %f\n", totalArrivedCustomers, sampTime);
@@ -422,7 +425,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
 
     private List<Cloudlet> createCloudlets(final ContinuousDistribution rand) {
         for(int i = 0; i < CLOUDLETS_TO_CREATE; i++){
-            cloudletList.add(createCloudlet(getRandomPesNumber(4, rand)));
+            cloudletList.add(createCloudlet(getRandomPesNumber(1, rand)));
         }
 
         return cloudletList;
@@ -431,7 +434,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
     private List<Vm> createVms(final ContinuousDistribution random) {
         final List<Vm> list = new ArrayList<>(VMS_TO_CREATE);
         for(int i = 0; i < VMS_TO_CREATE; i++){
-            list.add(createVm(getRandomPesNumber(128, random)));
+            list.add(createVm(getRandomPesNumber(4, random)));
         }
 
         return list;
@@ -546,13 +549,13 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
         final long length = 400000; //in Million Structions (MI)
         final long fileSize = 300; //Size (in bytes) before execution
         final long outputSize = 300; //Size (in bytes) after execution
-        CLOUDLET_LENGTH = 4000; //ran.nextInt(1000000) + 400000;
-
+        CLOUDLET_LENGTH = ran.nextInt(1000000) + 400000; //4000; //
+//
         //Defines how CPU, RAM and Bandwidth resources are used
         //Sets the same utilization model for all these resources.
         final UtilizationModel utilization = new UtilizationModelFull();
 
-        return new CloudletSimple(createdCloudlets++, CLOUDLET_LENGTH, numberOfPes)
+        return new CloudletSimple(createdCloudlets++, CLOUDLET_LENGTH, numberOfPes,5) // lets suppose life time is 5 sec for now, will later add random for different task using variable
             .setFileSize(fileSize)
             .setOutputSize(outputSize)
             .setUtilizationModel(utilization); //.setSubmissionTime(simulation.clock());
@@ -581,7 +584,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
             System.out.printf("\n#   Rounded event time %d and at simulation time %d\n", (int)Math.round(evt.getTime()), (int)Math.round(simulation.clock()));
 
             for (int i = 0; i < DYNAMIC_CLOUDLETS_TO_CREATE; i++) {
-                cloudletList.add(createCloudlet(getRandomPesNumber(32, random)));
+                cloudletList.add(createCloudlet(getRandomPesNumber(4, random)));
             }
 
             broker.submitCloudletList(cloudletList);

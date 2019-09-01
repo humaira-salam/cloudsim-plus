@@ -1,5 +1,6 @@
 package org.cloudbus.cloudsim.brokers;
 
+import org.apache.commons.math3.analysis.function.Min;
 import org.cloudbus.cloudsim.cloudlets.Cloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.core.events.SimEvent;
@@ -7,7 +8,11 @@ import org.cloudbus.cloudsim.resources.Pe;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.cloudbus.cloudsim.hosts.Host;
 
+import java.lang.reflect.Array;
 import java.util.*;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 
@@ -50,11 +55,26 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
             .min(Comparator.comparingLong(x -> x.getExpectedFreePesNumber()))
             .orElse(Vm.NULL);
 
-        Optional<Vm> TempVm = getVmCreatedList()
+        final Stream<Vm> mappedVmList= getVmCreatedList()
             .stream()
-            .filter(x-> getExpPowerOfHost(x) < 70)
-            .filter(x -> x.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes())
-            .min(Comparator.comparingLong(x -> x.getExpectedFreePesNumber()));
+            .filter(vm -> vm.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes());
+        final Stream<Vm> selVmList= getVmCreatedList()
+            .stream()
+            .filter(vm -> vm.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes());
+//        Double[] arrVm = mappedVmList.toArray(Double[]::new);
+//
+//        if(mappedVmList != Vm.NULL) {
+        double[] freePEslist =  mappedVmList.mapToDouble(x->x.getExpectedFreePesNumber()/x.getNumberOfPes()).toArray(); //.collect(Collectors.toList());/**/
+//            List<Double> freeMips = mappedVmList.map(x->x.getCurrentRequestedTotalMips()).collect(Collectors.toList());
+            Long clLength = cloudlet.getLength();
+//            List<Double> exectime = freeMips.stream().map(x->clLength/x).collect(Collectors.toList());
+//        List<Double> exectime = freePEslist.stream().map(x-> clLength.doubleValue()/(x*1000)).collect(Collectors.toList());
+//        double min = Collections.min(exectime);
+//
+//        int ind = exectime.indexOf(Collections.min(exectime));
+//
+//        Stream<Vm> optVm = selVmList.filter(x->x.getId()==ind);
+//        }
 
 
         if(mappedVm != Vm.NULL){
