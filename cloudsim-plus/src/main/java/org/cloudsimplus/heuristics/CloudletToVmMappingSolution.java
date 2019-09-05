@@ -28,6 +28,7 @@ import org.cloudbus.cloudsim.vms.Vm;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 
 /**
  * A possible solution for mapping a set of Cloudlets to a set of Vm's.
@@ -123,7 +124,17 @@ public class CloudletToVmMappingSolution implements HeuristicSolution<Map<Cloudl
         this.recomputeCost = false;
     }
 
+    // the below is computing he cost of VM only if they cloudlet allocated to them
     private double computeCostOfAllVms() {
+        double[] costlist = groupCloudletsByVm()
+            .entrySet()
+            .stream()
+            .mapToDouble(this::getVmCost).toArray();
+
+        double underCost = Arrays.stream(costlist).filter(x->x>0).sum();
+        double overCost = Arrays.stream(costlist).filter(x->x<0).sum();
+        double maxUtiliz = Arrays.stream(costlist).filter(x->x==0).count();
+
         return groupCloudletsByVm()
                 .entrySet()
                 .stream()
@@ -192,7 +203,13 @@ public class CloudletToVmMappingSolution implements HeuristicSolution<Map<Cloudl
      * @return the VM cost to host the Cloudlets
      */
     public double getVmCost(final Vm vm, final List<Cloudlet> cloudlets) {
-        return Math.abs(vm.getNumberOfPes() - getTotalCloudletsPes(cloudlets));
+//        return Math.abs(vm.getNumberOfPes() - getTotalCloudletsPes(cloudlets));
+        double cmPe = vm.getNumberOfPes();
+        double clPe =  getTotalCloudletsPes(cloudlets);
+        return vm.getNumberOfPes() - getTotalCloudletsPes(cloudlets);
+
+
+
     }
 
     private List<Cloudlet> convertListOfMapEntriesToListOfCloudlets(final List<Map.Entry<Cloudlet, Vm>> entriesList) {

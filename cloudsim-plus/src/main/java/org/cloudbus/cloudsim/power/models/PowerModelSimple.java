@@ -1,5 +1,8 @@
 package org.cloudbus.cloudsim.power.models;
 
+import GPRJavafunc.Class1;
+import com.mathworks.toolbox.javabuilder.MWArray;
+
 import java.util.Objects;
 import java.util.function.UnaryOperator;
 
@@ -65,6 +68,31 @@ public class PowerModelSimple extends PowerModelAbstract {
         setMaxPower(maxPower);
         setStaticPowerPercent(staticPowerPercent);
     }
+
+//    public PowerModelSimple(final double maxPower, final double staticPowerPercent) {
+//        super();
+//        this.powerFunction = Objects.requireNonNull(powerFunction);
+//        setMaxPower(maxPower);
+//        setStaticPowerPercent(staticPowerPercent);
+//
+//        Object[] powerFunction = null;
+//        Class1 predPow = null;
+//        double[] testData;
+//        try {
+//            testData = new double[]{3710.63297271667}; // utilization
+//            predPow = new Class1();
+//            powerFunction = predPow.GPRJavafunc(1, testData);
+//            System.out.println(powerFunction[0]);
+//
+//
+//        } catch (Exception e) {
+//            System.out.println("Exception: " + e.toString());
+//        } finally {
+//            MWArray.disposeArray(powerFunction);
+//            predPow.dispose();
+//
+//        }
+//    }
 
     @Override
     public double getMaxPower() {

@@ -11,6 +11,7 @@ import org.cloudsimplus.listeners.EventListener;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.OptionalDouble;
 
 /**
  * A class that implements the Null Object Design Pattern for {@link Cloudlet}
@@ -102,6 +103,8 @@ final class CloudletNull implements Cloudlet {
     }
     @Override public Cloudlet setSubmissionTime(double submissionTime) {return Cloudlet.NULL;}
     @Override public double getSubmissionTime() { return 0.0; }
+    @Override public Cloudlet setLifeTime(double lifetime) { return Cloudlet.NULL; }
+    @Override public Cloudlet setExpExecTime(double expExecTime){ return Cloudlet.NULL;}
     @Override public long getJobId() { return 0; }
     @Override public void setJobId(long jobId) {/**/}
     @Override public UtilizationModel getUtilizationModelBw() {
@@ -178,9 +181,7 @@ final class CloudletNull implements Cloudlet {
     @Override public Cloudlet setUtilizationModelCpu(UtilizationModel utilizationModelCpu) {
         return Cloudlet.NULL;
     }
-    @Override public Cloudlet setUtilizationModelRam(UtilizationModel utilizationModelRam) {
-        return Cloudlet.NULL;
-    }
+    @Override public Cloudlet setUtilizationModelRam(UtilizationModel utilizationModelRam) { return Cloudlet.NULL; }
     @Override public Cloudlet setVm(Vm vm) {
         return Cloudlet.NULL;
     }

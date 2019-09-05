@@ -61,8 +61,14 @@ public abstract class CloudletAbstract extends CustomerEntityAbstract implements
     /** @see #getExecStartTime() */
     private double execStartTime;
 
-    /** @see #setSubmissionTime()*/
+    /** @see #setSubmissionTime(double)*/
     private double submissionTime;
+
+    /** @see #setLifeTime(double)*/
+    private double lifeTime;
+
+    /** Set the expected execution time of the cloudlet */
+    private double expExecTime;
 
     /** @see #getPriority() */
     private int priority;
@@ -212,6 +218,63 @@ public abstract class CloudletAbstract extends CustomerEntityAbstract implements
         onUpdateProcessingListeners = new HashSet<>();
     }
 
+    /**
+     * Creates a Cloudlet with no priority, file size and output size equal to 1.
+     *
+     * <p><b>NOTE:</b> By default, the Cloudlet will use a {@link UtilizationModelFull} to define
+     * CPU utilization and a {@link UtilizationModel#NULL} for RAM and BW.
+     * To change the default values, use the respective setters.</p>
+     *
+     * @param length the length or size (in MI) of this cloudlet to be executed in a VM (check out {@link #setLength(long)})
+     * @param pesNumber number of PEs that Cloudlet will require
+     * @param lifeTime     lifetime of the Cloudlet
+     */
+
+    public CloudletAbstract(final long id, final long length, final long pesNumber, final double lifeTime) {
+        /*
+        Normally, a Cloudlet is only executed on a Datacenter without being
+        migrated to others. Hence, to reduce memory consumption, set the
+        size of this ArrayList to be less than the default one.
+        */
+        this.datacenterExecutionList = new ArrayList<>(2);
+        this.requiredFiles = new LinkedList<>();
+
+        this.setId(id);
+        this.setJobId(NOT_ASSIGNED);
+
+        this.netServiceLevel = 0;
+        this.execStartTime = 0.0;
+        this.status = Status.INSTANTIATED;
+        this.priority = 0;
+        this.setNumberOfPes(pesNumber);
+
+
+
+        this.lastExecutedDatacenterIdx = NOT_ASSIGNED;
+        setBroker(DatacenterBroker.NULL);
+        setFinishTime(NOT_ASSIGNED); // meaning this Cloudlet hasn't finished yet
+        setVm(Vm.NULL);
+
+        this.setLength(length);
+        this.setFileSize(1);
+        this.setOutputSize(1);
+
+        setAccumulatedBwCost(0.0);
+        setCostPerBw(0.0);
+        setSubmissionDelay(0.0);
+        // also set the deadline for the cloudlets here
+        this.setLifeTime(lifeTime);
+
+        setUtilizationModelCpu(new UtilizationModelFull());
+        setUtilizationModelRam(UtilizationModel.NULL);
+        setUtilizationModelBw(UtilizationModel.NULL);
+        onStartListeners = new HashSet<>();
+        onFinishListeners = new HashSet<>();
+        onUpdateProcessingListeners = new HashSet<>();
+    }
+
+
+
     protected int getLastExecutedDatacenterIdx() {
         return lastExecutedDatacenterIdx;
     }
@@ -279,6 +342,8 @@ public abstract class CloudletAbstract extends CustomerEntityAbstract implements
         this.length = length;
         return this;
     }
+
+
 
     @Override
     public boolean setNetServiceLevel(final int netServiceLevel) {
@@ -557,6 +622,26 @@ public abstract class CloudletAbstract extends CustomerEntityAbstract implements
      */
     public double getSubmissionTime(){
         return submissionTime;
+    }
+
+    /**
+     * Set lifetime of the cloudlet
+     */
+    @Override
+    public Cloudlet setLifeTime(double lifeTime){
+        this.lifeTime = lifeTime;
+        return this;
+    }
+
+    /**
+     * set the expexted execution time of the cloudlets
+     * @param expExecTime
+     * @return
+     */
+    @Override
+    public Cloudlet setExpExecTime(double expExecTime) {
+        this.expExecTime = expExecTime;
+        return this;
     }
 
     /**

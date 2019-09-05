@@ -85,6 +85,19 @@ public class CloudletSimple extends CloudletAbstract {
         super(id, length, pesNumber);
     }
 
+
+    /**
+     * Create a cloudlets which is similar to other methods as dscribed above but will also have the deadline constraint
+     * that is each cloudlet will have the deadline under which it must complete its task
+     * @return
+     */
+
+    public CloudletSimple(final long id, final long length, final long pesNumber, final double lifetime) {super(id, length, pesNumber, lifetime);}
+
+
+
+
+
     @Override
     public String toString() {
         return String.format("Cloudlet %d", getId());

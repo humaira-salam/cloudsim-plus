@@ -31,11 +31,11 @@ public abstract class PowerModelAbstract implements PowerModel {
     @Override
     public final double getPower(final double utilization) throws IllegalArgumentException {
 		if (utilization < 0 || utilization > 1) {
-            System.out.printf("utilization error occured\n");
-//			throw new IllegalArgumentException(
-//                String.format(
-//                    "Utilization value must be between 0 and 1. The given value was %f",
-//                    utilization));
+//            System.out.printf("utilization error occured\n");
+			throw new IllegalArgumentException(
+                String.format(
+                    "Utilization value must be between 0 and 1. The given value was %f",
+                    utilization));
 		}
 
 		if(!host.isActive()){

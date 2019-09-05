@@ -21,6 +21,7 @@ import org.cloudsimplus.listeners.DatacenterBrokerEventInfo;
 import org.cloudsimplus.listeners.EventInfo;
 import org.cloudsimplus.listeners.EventListener;
 import org.cloudsimplus.traces.google.GoogleTaskEventsTraceReader;
+import sun.awt.X11.XSizeHints;
 
 import java.util.*;
 import java.util.function.Function;
@@ -88,7 +89,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
     private final List<Cloudlet> cloudletsFinishedList;
 
     /** @see #getCloudletCreatedList() () */
-    private final List<Cloudlet> cloudletsCreatedList;
+    private List<Cloudlet> cloudletsCreatedList;
 
     /**
      * Checks if the last time checked, there were waiting cloudlets or not.
@@ -162,7 +163,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
         this.vmCreatedList = new ArrayList<>();
         this.cloudletWaitingList = new ArrayList<>();
         this.cloudletsFinishedList = new ArrayList<>();
-        this.cloudletsCreatedList = new ArrayList<>();
+        this.cloudletsCreatedList = new ArrayList<>(); // this is also a queue of the system
         this.cloudletSubmittedList = new ArrayList<>();
 
         setDatacenterList(new TreeSet<>());
@@ -933,12 +934,23 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
          */
 
         final List<Cloudlet> successfullySubmitted = new ArrayList<>();
-        for (final Cloudlet cloudlet : cloudletWaitingList) {
+        int quesize = 10;
+        boolean allowedCl = (cloudletWaitingList.size()/10) < 1;
+        List<Cloudlet> cloudletsQueue;
+        if (allowedCl)
+        {
+            cloudletsQueue = cloudletWaitingList;
+
+        }
+        else {
+             cloudletsQueue = cloudletWaitingList.subList(0, quesize);
+        }
+
+        for (final Cloudlet cloudlet : cloudletsQueue) {
             final CustomerEntityAbstract entity = (CustomerEntityAbstract) cloudlet;
             if (!entity.getLastTriedDatacenter().equals(Datacenter.NULL)) {
                 continue;
-            }
-
+            }//trying
             //selects a VM for the given Cloudlet
             lastSelectedVm = vmMapper.apply(cloudlet);
             if (lastSelectedVm == Vm.NULL) {
@@ -956,8 +968,8 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
             send(getDatacenter(lastSelectedVm),
                 cloudlet.getSubmissionDelay(), CloudSimTags.CLOUDLET_SUBMIT, cloudlet);
             entity.setLastTriedDatacenter(getDatacenter(lastSelectedVm));
-            cloudletsCreatedList.add(cloudlet);
-            successfullySubmitted.add(cloudlet);
+                cloudletsCreatedList.add(cloudlet);
+                successfullySubmitted.add(cloudlet);
 //            cloudletWaitingList.remove(cloudlet);
         }
 

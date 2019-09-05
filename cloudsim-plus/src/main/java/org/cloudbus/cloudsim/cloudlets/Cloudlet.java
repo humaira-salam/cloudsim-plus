@@ -21,6 +21,7 @@ import org.cloudsimplus.listeners.EventListener;
 import org.cloudsimplus.traces.google.GoogleTaskEventsTraceReader;
 
 import java.util.List;
+import java.util.OptionalDouble;
 
 /**
  * An interface to be implemented by each class that provides basic
@@ -767,6 +768,20 @@ public interface Cloudlet extends UniquelyIdentifiable, Comparable<Cloudlet>, Cu
     Cloudlet setSubmissionTime(double submissionTime);
 
     double getSubmissionTime();
+
+
+    /**
+     * Life-time of the cloudlets
+     * If the task is not processed with in this time after it's arrival in the system, then it will be lost
+     */
+
+    Cloudlet setLifeTime(double lifeTime);
+
+    /**
+     * Set the expected execution time of the cloudlet
+     */
+
+    Cloudlet setExpExecTime(double expExecTime);
 
     /**
      * Sets the {@link #getExecStartTime() latest execution start time} of this Cloudlet.
