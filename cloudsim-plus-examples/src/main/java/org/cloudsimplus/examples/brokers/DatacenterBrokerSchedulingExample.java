@@ -644,7 +644,7 @@ public class DatacenterBrokerSchedulingExample {
 //            for (int i = 0; i < DYNAMIC_CLOUDLETS_TO_CREATE; i++) {
 //                cloudletList.add(createCloudlet(getRandomPesNumber(4, random)));
 //            }
-            List<Double> getGenCL = Arrays.stream(genEvtTime).filter(x-> 1 > x && x > 2).collect(Collectors.toList());
+//            List<Double> getGenCL = Arrays.stream(genEvtTime).filter(x-> 1 > x && x > 2).collect(Collectors.toList());
 
             for (int i = 0; i < 10; i++) {
                 subTime = getGenCL.get(i);
