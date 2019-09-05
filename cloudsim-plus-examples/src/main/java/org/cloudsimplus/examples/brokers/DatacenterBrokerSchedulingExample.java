@@ -46,17 +46,14 @@ import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.ResourceProvisionerSimple;
 import org.cloudbus.cloudsim.resources.Pe;
 import org.cloudbus.cloudsim.resources.PeSimple;
-import org.cloudbus.cloudsim.schedulers.cloudlet.CloudletSchedulerSpaceShared;
 import org.cloudbus.cloudsim.schedulers.cloudlet.CloudletSchedulerTimeShared;
 import org.cloudbus.cloudsim.schedulers.vm.VmSchedulerSpaceShared;
-import org.cloudbus.cloudsim.schedulers.vm.VmSchedulerTimeShared;
 import org.cloudbus.cloudsim.util.SwfWorkloadFileReader;
 import org.cloudbus.cloudsim.utilizationmodels.UtilizationModel;
 import org.cloudbus.cloudsim.utilizationmodels.UtilizationModelFull;
 import org.cloudbus.cloudsim.vms.UtilizationHistory;
 import org.cloudbus.cloudsim.vms.Vm;
 import org.cloudbus.cloudsim.vms.VmSimple;
-import org.cloudsimplus.builders.tables.CloudletsTableBuilder;
 import org.cloudsimplus.heuristics.CloudletToVmMappingHeuristic;
 import org.cloudsimplus.heuristics.CloudletToVmMappingSimulatedAnnealing;
 import org.cloudsimplus.heuristics.CloudletToVmMappingSolution;
@@ -67,12 +64,10 @@ import com.opencsv.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.text.Position;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
 /**
@@ -96,18 +91,19 @@ import java.util.stream.DoubleStream;
  * @author Manoel Campos da Silva Filho
  * @since CloudSim Plus 1.0
  */
-public class DatacenterBrokerPowerAwareExamplePoisson {
+public class DatacenterBrokerSchedulingExample {
     private static final int HOSTS_TO_CREATE = 50;
     private static final int VMS_TO_CREATE = HOSTS_TO_CREATE*3;
-    private static final int CLOUDLETS_TO_CREATE = 20;
+    private static final int CLOUDLETS_TO_CREATE = 50; // for creating cloudlets at one tijme instant
     private static final int DYNAMIC_CLOUDLETS_TO_CREATE = 20;
     private static final int HOST_PES = 8;
     private static final int VM_PES = 4;
     private static final int CLOUDLET_PES = 1;
-    private double TIME_TO_CREATE_NEW_CLOUDLET = 1;
-    private double MAX_TIME_FOR_CLOUDLET_ARRIVAL = 0; // -1 indicates cloudlets were created using MAX_CLOUDLETS_TO_CREATE;
-    private static double MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE = 0;
+    private double TIME_TO_CREATE_NEW_CLOUDLET = 0;
+    private double MAX_TIME_FOR_CLOUDLET_ARRIVAL = 1000; // -1 indicates cloudlets were created using MAX_CLOUDLETS_TO_CREATE;
+    private static double MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE = 2;
     private static final int MAX_CLOUDLETS_TO_CREATE = 500; //-1 here indicate that max time 'MAX_TIME_FOR_CLOUDLET_ARRIVAL' was used to create maximum cloudlets
+    double subTime = 0;
 
 
     private static int CLOUDLET_LENGTH;
@@ -191,6 +187,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
     private int maximumNumberOfCloudletsToCreateFromTheWorkloadFile = 500;//-1;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(CloudSim.class.getSimpleName());
+    private double[] genEvtTime;
 
     /**
      * If set to false, consecutive lines with the the same CPU utilization and power consumption
@@ -207,7 +204,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
         /**
          * number of repetitions
          */
-        int numRep = 5;
+        int numRep = 1;
         final boolean verbose = true;
         final boolean showAllHostUtilizationHistoryEntries = true;
         int[] rateArr = new int[]{0, 1, 2, 4, 6, 8, 10, 12, 14, 15};
@@ -225,7 +222,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
                 final CloudSim simulation1 = new CloudSim();
                 final UniformDistr random1 = new UniformDistr(0, 1, seed);
                 final DatacenterBroker broker1 = new DatacenterBrokerPowerAware(simulation1);
-                new DatacenterBrokerPowerAwareExamplePoisson(broker1, random1, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
+                new DatacenterBrokerSchedulingExample(broker1, random1, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
     //            logFileCreated = true;
     //        }
 
@@ -236,7 +233,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
                 final CloudSim simulation0 = new CloudSim();
                 final UniformDistr random0 = new UniformDistr(0, 1, seed);
                 final DatacenterBrokerHeuristic broker0 = createHeuristicBroker(simulation0, random0);
-                new DatacenterBrokerPowerAwareExamplePoisson(broker0, random0, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
+                new DatacenterBrokerSchedulingExample(broker0, random0, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
     //            logFileCreated = true;
     //        }
 
@@ -247,7 +244,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
                 final CloudSim simulation2 = new CloudSim();
                 final UniformDistr random2 = new UniformDistr(0, 1, seed);
                 final DatacenterBroker broker2 = new DatacenterBrokerSimple(simulation2);
-                new DatacenterBrokerPowerAwareExamplePoisson(broker2, random2, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
+                new DatacenterBrokerSchedulingExample(broker2, random2, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
 
 
 //                logFileCreated = true;
@@ -260,16 +257,16 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
     /**
      * Default constructor where the simulation is built.
      */
-    public DatacenterBrokerPowerAwareExamplePoisson(final DatacenterBroker broker, final ContinuousDistribution rand,
-                                                   final boolean verbose, final boolean showAllHostUtilizationHistoryEntries,
-                                                   int rep, double clMax) {
+    public DatacenterBrokerSchedulingExample(final DatacenterBroker broker, final ContinuousDistribution rand,
+                                             final boolean verbose, final boolean showAllHostUtilizationHistoryEntries,
+                                             int rep, double clMax) {
         //Enables just some level of log messages.
         Log.setLevel(Level.ERROR);
         System.out.println("Starting " + getClass().getSimpleName());
         this.broker = broker;
         simulation = broker.getSimulation();
         random = rand;
-        MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE = clMax;
+//        MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE = clMax;
         int numOfFinishedCloudlets = 0;
 //        int rep = currRep;
 //        simulation.terminateAt(TIME_TO_FINISH_SIMULATION);
@@ -278,8 +275,8 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
         cloudletList = new ArrayList<>();
 
         vmList = createVms(random);
-//        cloudletList = createCloudlets(random);
-        cloudletList = getCloudletListfromPoisson(random);
+        cloudletList = createCloudlets(random, subTime);
+//        cloudletList = getCloudletListfromPoisson(random, subTime);
 
 
             /*Vms and cloudlets are created before the Datacenter and host
@@ -303,7 +300,58 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
         /**
          * on every clock tick check if the condition for generating dynamic cloudlet is satisfied
          */
-//        simulation.addOnClockTickListener(this::createDynamicCloudlet);
+
+////        int poisson = new getPoisson(10);
+//        double lambda = 10;
+////        double[] L = new double[0]; //= new double[];
+////        double L =double[];
+//        double[] pk = new double[20]; //=[];
+//        int[] rk = new int[20]; //=[];
+//
+////        int getPoisson(double lambda) {
+//             double L = Math.exp(-lambda);
+//             double p = 1.0;
+//            int k = 0;
+//
+//            do {
+//                k++;
+//                p *= Math.random();
+//                pk[k-1]= p;
+//                rk[k-1] = k;
+//            } while (p > L);
+//
+//            int dist = k-1;
+////            return k - 1;
+////        }
+//
+
+        PoissonDistr poisson = new PoissonDistr(3.33, 0);
+        int totalArrivedCustomers = 0;
+        int numcl = 1;
+        int maxEvnt = 500;
+        double[] sampTime = new double[maxEvnt+2];
+        genEvtTime = new double[maxEvnt+2];
+        int i=1;
+        genEvtTime[0] = simulation.clock();
+        while( totalArrivedCustomers <= maxEvnt){
+//            poisson.setK(randClMax[i]);
+            int numK =  poisson.getK();
+            totalArrivedCustomers += poisson.getK();
+            double intTime =poisson.sample();
+            double intTimsec = intTime/60;
+            double prevTime = sampTime[i-1];
+            double prevTimsec = prevTime/60;
+            double kj = 3.1+1.2;
+            sampTime[i] = prevTimsec + intTimsec;
+            genEvtTime[i] = genEvtTime[i-1] +sampTime[i];
+//            double evtProb = poisson.eventsArrivalProbability();
+//            totalArrivedCustomers +=numcl;
+            i=i+1;
+//            System.out.printf("%d cloudlets arrived at minute %f\n", poisson.getK(), sampTime);
+        }
+
+        simulation.addOnClockTickListener(this::createDynamicCloudlet);
+
 
         simulation.start();
 
@@ -373,6 +421,8 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
 
     }
 
+
+
     private static DatacenterBrokerHeuristic createHeuristicBroker(final CloudSim sim, final ContinuousDistribution rand) {
         CloudletToVmMappingSimulatedAnnealing heuristic = createSimulatedAnnealingHeuristic(rand);
         final DatacenterBrokerHeuristic broker = new DatacenterBrokerHeuristic(sim);
@@ -383,7 +433,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
 
 
 
-    private List<Cloudlet> getCloudletListfromPoisson(final ContinuousDistribution rand){
+    private List<Cloudlet> getCloudletListfromPoisson(final ContinuousDistribution rand, double subTime){
         //creates a poisson process that checks the arrival of 1 (k) cloudlet
         //1 is the default value for k
 //        PoissonDistr poisson = new PoissonDistr(MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE, 0);
@@ -394,8 +444,8 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
 //            totalArrivedCustomers += poisson.getK();
 //            sampTime = sampTime + poisson.sample();
             totalArrivedCustomers +=numcl;
-            Cloudlet cloudlet = createCloudlet(getRandomPesNumber(4, rand));  //CLOUDLET_PES
-            cloudlet.setSubmissionDelay(0); //(sampTime);
+            Cloudlet cloudlet = createCloudlet(getRandomPesNumber(4, rand), subTime);  //CLOUDLET_PES
+            cloudlet.setSubmissionDelay(subTime); //(sampTime);
             cloudlet.setSubmissionTime(0); //(sampTime);
             cloudletList.add(cloudlet);
 
@@ -423,13 +473,16 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
 
 
 
-    private List<Cloudlet> createCloudlets(final ContinuousDistribution rand) {
+    private List<Cloudlet> createCloudlets(final ContinuousDistribution rand, double subTime) {
         for(int i = 0; i < CLOUDLETS_TO_CREATE; i++){
-            cloudletList.add(createCloudlet(getRandomPesNumber(1, rand)));
+            cloudletList.add(createCloudlet(getRandomPesNumber(1, rand), subTime));
         }
 
         return cloudletList;
     }
+
+//    private Cloudlet createCloudlet(int randomPesNumber, double subTime) {
+//    }
 
     private List<Vm> createVms(final ContinuousDistribution random) {
         final List<Vm> list = new ArrayList<>(VMS_TO_CREATE);
@@ -545,7 +598,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
         return vm;
     }
 
-    private Cloudlet createCloudlet(final int numberOfPes) {
+    private Cloudlet createCloudlet(final int numberOfPes, double subTime) {
         final long length = 400000; //in Million Structions (MI)
         final long fileSize = 300; //Size (in bytes) before execution
         final long outputSize = 300; //Size (in bytes) after execution
@@ -558,7 +611,7 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
         return new CloudletSimple(createdCloudlets++, CLOUDLET_LENGTH, numberOfPes,5) // lets suppose life time is 5 sec for now, will later add random for different task using variable
             .setFileSize(fileSize)
             .setOutputSize(outputSize)
-            .setUtilizationModel(utilization); //.setSubmissionTime(simulation.clock());
+            .setUtilizationModel(utilization).setSubmissionTime(subTime);//.setSubmissionTime(simulation.clock());
     }
 
     private void createCloudletsFromWorkloadFile() {
@@ -579,12 +632,23 @@ public class DatacenterBrokerPowerAwareExamplePoisson {
 //        LOGGER.error("================= Starting CloudSim Plus at time : {}", simulation.clock());
 //        System.out.println("simclock time : %d", simulation.clock());
         //
-        if (!cloudletCreated && (simulation.clock() >= TIME_TO_CREATE_NEW_CLOUDLET) && (simulation.clock() <= MAX_TIME_FOR_CLOUDLET_ARRIVAL)) {
+        System.out.printf("\n# Dynamically creating %d Cloudlets at event time %.2f and at simulation time %.2f\n", DYNAMIC_CLOUDLETS_TO_CREATE, evt.getTime(), simulation.clock());
+        System.out.printf("\n#   Rounded event time %d and at simulation time %d\n", (int)Math.round(evt.getTime()), (int)Math.round(simulation.clock()));
+
+
+
+        if ( !cloudletCreated && (simulation.clock() >= TIME_TO_CREATE_NEW_CLOUDLET) && (simulation.clock() <= MAX_TIME_FOR_CLOUDLET_ARRIVAL)) {
             System.out.printf("\n# Dynamically creating %d Cloudlets at event time %.2f and at simulation time %.2f\n", DYNAMIC_CLOUDLETS_TO_CREATE, evt.getTime(), simulation.clock());
             System.out.printf("\n#   Rounded event time %d and at simulation time %d\n", (int)Math.round(evt.getTime()), (int)Math.round(simulation.clock()));
 
-            for (int i = 0; i < DYNAMIC_CLOUDLETS_TO_CREATE; i++) {
-                cloudletList.add(createCloudlet(getRandomPesNumber(4, random)));
+//            for (int i = 0; i < DYNAMIC_CLOUDLETS_TO_CREATE; i++) {
+//                cloudletList.add(createCloudlet(getRandomPesNumber(4, random)));
+//            }
+            List<Double> getGenCL = Arrays.stream(genEvtTime).filter(x-> 1 > x && x > 2).collect(Collectors.toList());
+
+            for (int i = 0; i < 10; i++) {
+                subTime = getGenCL.get(i);
+                cloudletList.add(createCloudlet(getRandomPesNumber(4, random), subTime));
             }
 
             broker.submitCloudletList(cloudletList);
