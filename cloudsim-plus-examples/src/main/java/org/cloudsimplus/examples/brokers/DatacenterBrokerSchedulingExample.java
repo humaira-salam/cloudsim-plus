@@ -94,22 +94,21 @@ import java.util.stream.DoubleStream;
 public class DatacenterBrokerSchedulingExample {
     private static final int HOSTS_TO_CREATE = 25;
     private static final int VMS_TO_CREATE = HOSTS_TO_CREATE * 3;
-    private static final int CLOUDLETS_TO_CREATE = 500; // for creating cloudlets at one tijme instant
-    private static final int DYNAMIC_CLOUDLETS_TO_CREATE = 0;
+    private static final int CLOUDLETS_TO_CREATE = 50; // for creating cloudlets at one tijme instant
+    private static final int DYNAMIC_CLOUDLETS_TO_CREATE = 10;
     private static final int HOST_PES = 8;
     private static final int VM_PES = 4;
     private static final int CLOUDLET_PES = 1;
     private double TIME_TO_CREATE_NEW_CLOUDLET = 0;
     private double MAX_TIME_FOR_CLOUDLET_ARRIVAL = 0 ; //1000; // -1 indicates cloudlets were created using MAX_CLOUDLETS_TO_CREATE;
-    private static double MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE = 0;//2;
-    private static final int MAX_CLOUDLETS_TO_CREATE = 500; //-1 here indicate that max time 'MAX_TIME_FOR_CLOUDLET_ARRIVAL' was used to create maximum cloudlets
+    private static double MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE = 10;//2;
+    private static final int MAX_CLOUDLETS_TO_CREATE = 50; //-1 here indicate that max time 'MAX_TIME_FOR_CLOUDLET_ARRIVAL' was used to create maximum cloudlets
     double subTime = 0;
 
 
     private static int CLOUDLET_LENGTH;
     private static boolean cloudletCreated;
     private static boolean logFileCreated;
-    private double lastTime = 0;
 
 
     /**
@@ -128,6 +127,7 @@ public class DatacenterBrokerSchedulingExample {
 
     private final Simulation simulation;
     private List<Cloudlet> cloudletList;
+    private List<Cloudlet> dynamicClgen;
     private List<Vm> vmList;
     private final List<Host> hostList = new ArrayList<>();
     private List<Double> arrAllHostPow = new ArrayList<>();
@@ -153,6 +153,11 @@ public class DatacenterBrokerSchedulingExample {
     ContinuousDistribution random;
     private static Random ran = new Random();
 
+
+    double[] poissonTime;
+    int poisInd = 1;
+    double lastTime = 0;
+    int cntTotdygen =0;
     /**
      * Utilization error counter
      */
@@ -204,7 +209,7 @@ public class DatacenterBrokerSchedulingExample {
         /**
          * number of repetitions
          */
-        int numRep = 3;
+        int numRep = 1;
         final boolean verbose = true;
         final boolean showAllHostUtilizationHistoryEntries = true;
         int[] rateArr = new int[]{0, 1, 2, 4, 6, 8, 10, 12, 14, 15};
@@ -273,10 +278,12 @@ public class DatacenterBrokerSchedulingExample {
 
         final Datacenter datacenter = createDatacenter(simulation);
         cloudletList = new ArrayList<>();
-
+        dynamicClgen = new ArrayList<>();
         vmList = createVms(random);
         cloudletList = createCloudlets(random);
 //      cloudletList = getCloudletListfromPoisson(random);
+        poissonTime = getCloudletListfromPoisson(random);
+
             /*Vms and cloudlets are created before the Datacenter and host
             because the example is defining the hosts based on VM requirements
             and VMs are created based on cloudlet requirements.*/
@@ -299,28 +306,29 @@ public class DatacenterBrokerSchedulingExample {
          * on every clock tick check if the condition for generating dynamic cloudlet is satisfied
          */
 
-////        int poisson = new getPoisson(10);
-//        double lambda = 10;
-////        double[] L = new double[0]; //= new double[];
-////        double L =double[];
-//        double[] pk = new double[20]; //=[];
-//        int[] rk = new int[20]; //=[];
-//
-////        int getPoisson(double lambda) {
-//             double L = Math.exp(-lambda);
-//             double p = 1.0;
-//            int k = 0;
-//
-//            do {
-//                k++;
-//                p *= Math.random();
-//                pk[k-1]= p;
-//                rk[k-1] = k;
-//            } while (p > L);
-//
-//            int dist = k-1;
-////            return k - 1;
-////        }
+//        int poisson = new getPoisson(10);
+        double lambda = 100;
+//        double[] L = new double[0]; //= new double[];
+//        double L =double[];
+        double[] pk = new double[200]; //=[];
+        double[] rk = new double[200]; //=[];
+
+//        int getPoisson(lambda) {
+             double L = Math.exp(-lambda);
+             double p = 1.0;
+            double k = 0;
+            int i=0;
+            do {
+                k=k+1;
+                i++;
+                p *= Math.random();
+                pk[i]= p;
+                rk[i] = k;
+            } while (p > L);
+
+            int dist = i;
+//            return k - 1;
+//        }
 //
 
 //        PoissonDistr poisson = new PoissonDistr(3.33, 0);
@@ -348,14 +356,16 @@ public class DatacenterBrokerSchedulingExample {
 ////            System.out.printf("%d cloudlets arrived at minute %f\n", poisson.getK(), sampTime);
 //        }
 
-//        simulation.addOnClockTickListener(this::createDynamicCloudlet);
-
+        simulation.addOnClockTickListener(this::createDynamicCloudlet);
+//
 
         simulation.start();
 
         // print simulation results
         if (verbose) {
             final List<Cloudlet> finishedCloudlets = broker.getCloudletFinishedList();
+
+
 //            finishedCloudlets.sort(Comparator.comparingLong(Cloudlet::getId));
 //            new CloudletsTableBuilder(finishedCloudlets).build();
             // Now get arrival, execution and finish time for cloudlets
@@ -415,24 +425,27 @@ public class DatacenterBrokerSchedulingExample {
         return broker;
     }
 
-    private List<Cloudlet> getCloudletListfromPoisson(final ContinuousDistribution rand){
+//    private List<Cloudlet> getCloudletListfromPoisson(final ContinuousDistribution rand){
+        private double[] getCloudletListfromPoisson(final ContinuousDistribution rand){
+
         //creates a poisson process that checks the arrival of 1 (k) cloudlet
         //1 is the default value for k
-//        PoissonDistr poisson = new PoissonDistr(MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE, 0);
-        int totalArrivedCustomers = 0;
-        int numcl = 1;
-        double sampTime = 0;
+        PoissonDistr poisson = new PoissonDistr(MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE, 0);
+            int totalArrivedCustomers = 1;
+            int numcl = 1;
+//            double sampTime = 0;
+        poissonTime = new double[MAX_CLOUDLETS_TO_CREATE+5];
+            poissonTime[0] = 7;
         while( totalArrivedCustomers <= MAX_CLOUDLETS_TO_CREATE){
 //            totalArrivedCustomers += poisson.getK();
-//            sampTime = sampTime + poisson.sample();
-            totalArrivedCustomers +=numcl;
-            Cloudlet cloudlet = createCloudlet(getRandomPesNumber(4, rand));  //CLOUDLET_PES
-            cloudlet.setSubmissionDelay(0); //(sampTime);
-            cloudletList.add(cloudlet);
-
+            poissonTime[totalArrivedCustomers] = poissonTime[totalArrivedCustomers-1] + poisson.sample();
+            totalArrivedCustomers += 1;
+//            Cloudlet cloudlet = createCloudlet(getRandomPesNumber(4, rand));  //CLOUDLET_PES
+//            cloudlet.setSubmissionDelay(0); //(sampTime);
+//            cloudletList.add(cloudlet);
 //            System.out.printf("%d cloudlets arrived at minute %f\n", poisson.getK(), sampTime);
         }
-        System.out.printf("\n\t%d cloudlets have arrived in time %f\n", totalArrivedCustomers, sampTime);
+//        System.out.printf("\n\t%d cloudlets have arrived in time %f\n", totalArrivedCustomers, sampTime);
 
 //        for (int minute = 0; minute < MAX_TIME_FOR_CLOUDLET_ARRIVAL; minute++) {
 ////            if (poisson.eventsHappened()) { //Have k Cloudlets arrived?
@@ -449,7 +462,7 @@ public class DatacenterBrokerSchedulingExample {
 //            }
 //        }
         System.out.printf("\n\t%d cloudlets have arrived\n", totalArrivedCustomers);
-        return cloudletList;
+        return poissonTime;
         //
     }
     //
@@ -577,7 +590,7 @@ public class DatacenterBrokerSchedulingExample {
         return new CloudletSimple(createdCloudlets++, CLOUDLET_LENGTH, numberOfPes) // lets suppose life time is 5 sec for now, will later add random for different task using variable
             .setFileSize(fileSize)
             .setOutputSize(outputSize)
-            .setUtilizationModel(utilization).setSubmissionTime(subTime).setLifeTime(randDueTime);//.setSubmissionTime(simulation.clock());
+            .setUtilizationModel(utilization).setSubmissionTime(subTime).setLifeTime(subTime+10).setDueTime(randDueTime);//.setSubmissionTime(simulation.clock());
     }
 
     private void createCloudletsFromWorkloadFile() {
@@ -589,6 +602,7 @@ public class DatacenterBrokerSchedulingExample {
         System.out.printf("# Created %d Cloudlets for %s\n", this.cloudletList.size(), broker);
     }
 
+
     /**
      * Simulates the dynamic arrival of a Cloudlet and a VM during simulation runtime.
      * @param evt
@@ -598,21 +612,25 @@ public class DatacenterBrokerSchedulingExample {
 //        LOGGER.error("================= Starting CloudSim Plus at time : {}", simulation.clock());
 //        System.out.println("simclock time : %d", simulation.clock());
         //
-        System.out.printf("\n# Dynamically creating %d Cloudlets at event time %.2f and at simulation time %.2f\n", DYNAMIC_CLOUDLETS_TO_CREATE, evt.getTime(), simulation.clock());
-        System.out.printf("\n#   Rounded event time %d and at simulation time %d\n", (int)Math.round(evt.getTime()), (int)Math.round(simulation.clock()));
+//        System.out.printf("\n# Dynamically creating %d Cloudlets at event time %.2f and at simulation time %.2f\n", DYNAMIC_CLOUDLETS_TO_CREATE, evt.getTime(), simulation.clock());
+//        System.out.printf("\n#   Rounded event time %.4f and at simulation time %.4f\n", evt.getTime(), simulation.clock());
 
-
-
-//        if ( !cloudletCreated && (simulation.clock() >= TIME_TO_CREATE_NEW_CLOUDLET) && (simulation.clock() <= MAX_TIME_FOR_CLOUDLET_ARRIVAL)) {
+        double timeInd = poissonTime[poisInd];
+        if ( !cloudletCreated && (simulation.clock() >= timeInd) && (cloudletList.size() <= 98)) {
 //            System.out.printf("\n# Dynamically creating %d Cloudlets at event time %.2f and at simulation time %.2f\n", DYNAMIC_CLOUDLETS_TO_CREATE, evt.getTime(), simulation.clock());
-//            System.out.printf("\n#   Rounded event time %d and at simulation time %d\n", (int)Math.round(evt.getTime()), (int)Math.round(simulation.clock()));
-//
-////            for (int i = 0; i < DYNAMIC_CLOUDLETS_TO_CREATE; i++) {
-//        Cloudlet cloudlet = createCloudlet(getRandomPesNumber(4, rand));  //CLOUDLET_PES
-//        cloudlet.setSubmissionDelay(0); //(sampTime);
+//            System.out.printf("\n#   Rounded event time %d and at simulation time %d\n", (int) Math.round(evt.getTime()), (int) Math.round(simulation.clock()));
+            int cltoCreate = (int) Arrays.stream(poissonTime).filter(x->(x < simulation.clock() && x > lastTime)).count();
+            for (int i = 0; i < cltoCreate; i++) {
+            Cloudlet cloudlet = createCloudlet(getRandomPesNumber(4,random));  //CLOUDLET_PES
+            cloudlet.setSubmissionDelay(0); //(sampTime);
 
-//        cloudletList.add(cloudlet);
-////            }
+            cloudletList.add(cloudlet);
+            dynamicClgen.add(cloudlet);
+            cntTotdygen +=1;
+            lastTime = poissonTime[poisInd];
+            poisInd += 1;
+            }
+            broker.submitCloudletList(dynamicClgen);
 //            List<Double> getGenCL = Arrays.stream(genEvtTime).filter(x-> 1 > x && x > 2).collect(Collectors.toList());
 //
 //            for (int i = 0; i < 10; i++) {
@@ -627,8 +645,8 @@ public class DatacenterBrokerSchedulingExample {
 //            lastTime = (int)Math.round(simulation.clock()) + 1;
 //        }
 //        cloudletCreated = true;
-//        System.out.printf("\n# Dynamically call at simulation time %.2f\n", simulation.clock());
-
+        System.out.printf("\n# Dynamically created total %d cloudlets at final simulation time %.2f\n", cntTotdygen, simulation.clock());
+        }
     }
 
     private double computeBrokersMappingCost(boolean doPrint) {

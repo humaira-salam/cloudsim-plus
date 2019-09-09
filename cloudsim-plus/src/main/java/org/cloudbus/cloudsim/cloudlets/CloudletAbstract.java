@@ -67,6 +67,9 @@ public abstract class CloudletAbstract extends CustomerEntityAbstract implements
     /** @see #setLifeTime(double)*/
     private double lifeTime;
 
+    /** @see #setDueTime(double)*/
+    private double dueTime;
+
     /** Set the expected execution time of the cloudlet */
     private double expExecTime;
 
@@ -634,10 +637,27 @@ public abstract class CloudletAbstract extends CustomerEntityAbstract implements
     }
 
     /**
-     * Get lfetime of the cloudlet
+     * Get lifetime of the cloudlet
      */
     public double getLifeTime(){
         return lifeTime;
+    }
+
+
+    /**
+     * Set due time of the cloudlet
+     */
+    @Override
+    public Cloudlet setDueTime(double dueTime){
+        this.dueTime = dueTime;
+        return this;
+    }
+
+    /**
+     * Get due time of the cloudlet
+     */
+    public double getDueTime(){
+        return dueTime;
     }
 
     /**

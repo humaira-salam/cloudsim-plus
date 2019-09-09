@@ -92,10 +92,15 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
     /** @see #getCloudletCreatedList() () */
     private List<Cloudlet> cloudletsCreatedList;
 
+    /** int to count expired cloudlets
+     *
+     */
+    int expiredCloudletsCount = 0;
 
 
 
-    /**
+
+     /**
      * Checks if the last time checked, there were waiting cloudlets or not.
      */
     private boolean wereThereWaitingCloudlets;
@@ -167,14 +172,16 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
         this.vmCreatedList = new ArrayList<>();
         this.cloudletWaitingList = new ArrayList<>();
         this.cloudletsFinishedList = new ArrayList<>();
-        this.cloudletsCreatedList = new ArrayList<>(); // this is also a queue of the system
+        this.cloudletsCreatedList = new ArrayList<>();
         this.cloudletSubmittedList = new ArrayList<>();
+
 
         setDatacenterList(new TreeSet<>());
         datacenterRequestedList = new TreeSet<>();
         setDefaultPolicies();
 
         vmDestructionDelayFunction = DEF_VM_DESTRUCTION_DELAY_FUNCTION;
+        simulation.addOnClockTickListener(this::updateQueue);
     }
 
     /**
@@ -186,6 +193,15 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
         datacenterSupplier = () -> Datacenter.NULL;
         fallbackDatacenterSupplier = datacenterSupplier;
         vmMapper = (cloudlet) -> Vm.NULL;
+    }
+
+    /**
+     * Update the queue on expiring of cloudlet with time
+     * @param evt
+     */
+
+    private void updateQueue(final EventInfo evt) {
+
     }
 
     @Override
@@ -938,7 +954,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
          */
 
         final List<Cloudlet> successfullySubmitted = new ArrayList<>();
-//        int quesize = 10;
+        int queuesize = 10;
 //        // check queue and do not extract cloudlets more than its queue size
 //        boolean allowedCl = (cloudletWaitingList.size()/10) < 1;
 //        List<Cloudlet> cloudletsQueue;
@@ -953,6 +969,11 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
 
             //do below sorting just for my algorithm not for others
+//        double timeNow = getSimulation().clock();
+//        List<Cloudlet> expiredCloudlets = cloudletWaitingList.stream().filter(x-> x.getLifeTime() < getSimulation().clock()).collect(Collectors.toList());
+        cloudletWaitingList.removeIf(x-> x.getLifeTime() < getSimulation().clock());
+//        expiredCloudletsCount += expiredCloudlets.size();
+
         List<Cloudlet> latenessArrCloudlet =cloudletWaitingList.stream().sorted(Comparator.comparingDouble(x-> (x.getLifeTime()+ ((x.getLength())/1000)))).sorted(Comparator.reverseOrder()).collect(Collectors.toList());
 //
         cloudletWaitingList = latenessArrCloudlet;

@@ -103,8 +103,10 @@ final class CloudletNull implements Cloudlet {
     }
     @Override public Cloudlet setSubmissionTime(double submissionTime) {return Cloudlet.NULL;}
     @Override public double getSubmissionTime() { return 0.0; }
-    @Override public Cloudlet setLifeTime(double lifetime) { return Cloudlet.NULL; }
+    @Override public Cloudlet setLifeTime(double lifeTime) { return Cloudlet.NULL; }
     @Override public double getLifeTime() { return 0.0; }
+    @Override public Cloudlet setDueTime(double dueTime) { return Cloudlet.NULL; }
+    @Override public double getDueTime() { return 0.0; }
     @Override public Cloudlet setExpExecTime(double expExecTime){ return Cloudlet.NULL;}
     @Override public long getJobId() { return 0; }
     @Override public void setJobId(long jobId) {/**/}

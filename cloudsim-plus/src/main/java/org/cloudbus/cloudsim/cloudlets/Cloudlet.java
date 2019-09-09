@@ -778,7 +778,7 @@ public interface Cloudlet extends UniquelyIdentifiable, Comparable<Cloudlet>, Cu
     Cloudlet setLifeTime(double lifeTime);
 
     /**
-     * To get the lfetime of the CLoudlets
+     * To get the lifetime/deadline of the CLoudlets
      */
 
     double getLifeTime();
@@ -786,6 +786,19 @@ public interface Cloudlet extends UniquelyIdentifiable, Comparable<Cloudlet>, Cu
     /**
      * Set the expected execution time of the cloudlet
      */
+
+    Cloudlet setDueTime(double lifeTime);
+
+    /**
+     * To get the lifetime/deadline of the CLoudlets
+     */
+
+    double getDueTime();
+
+    /**
+     * Set the expected execution time of the cloudlet
+     */
+
 
     Cloudlet setExpExecTime(double expExecTime);
 
