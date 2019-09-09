@@ -50,12 +50,16 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
             return cloudlet.getVm();
         }
 
+        // Below method to get the VM to cloudlets mapping by comparing the avialble and required cores
         final Vm mappedVm = getVmCreatedList()
             .stream()
             .filter(x -> getExpPowerOfHost(x) < 70)
             .filter(x -> x.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes())
             .min(Comparator.comparingLong(x -> x.getExpectedFreePesNumber()))
             .orElse(Vm.NULL);
+
+
+        // Below is the trial code to get the processing time of each cloudlet to be used for mapping
         final Stream<Vm> mappedVmList = getVmCreatedList()
             .stream()
             .filter(vm -> vm.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes()); // first check if you have cores equal to required,then we can use the one VM which will run for more time already
@@ -79,7 +83,7 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
 //        if(mappedVmList != Vm.NULL) {
 //        double[] freePEslist =  mappedVmList.mapToDouble(x->x.getExpectedFreePesNumber()/x.getNumberOfPes()).toArray(); //.collect(Collectors.toList());/**/
 //            List<Double> freeMips = mappedVmList.map(x->x.getCurrentRequestedTotalMips()).collect(Collectors.toList());
-        Long clLength = cloudlet.getLength();
+//        Long clLength = cloudlet.getLength();
 //            List<Double> exectime = freeMips.stream().map(x->clLength/x).collect(Collectors.toList());
 //        List<Double> exectime = freePEslist.stream().map(x-> clLength.doubleValue()/(x*1000)).collect(Collectors.toList());
 //        double min = Collections.min(exectime);

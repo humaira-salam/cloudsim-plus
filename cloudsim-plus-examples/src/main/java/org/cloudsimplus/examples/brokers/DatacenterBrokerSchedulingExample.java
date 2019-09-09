@@ -92,16 +92,16 @@ import java.util.stream.DoubleStream;
  * @since CloudSim Plus 1.0
  */
 public class DatacenterBrokerSchedulingExample {
-    private static final int HOSTS_TO_CREATE = 3;
-    private static final int VMS_TO_CREATE = HOSTS_TO_CREATE*2;
-    private static final int CLOUDLETS_TO_CREATE = 10; // for creating cloudlets at one tijme instant
+    private static final int HOSTS_TO_CREATE = 25;
+    private static final int VMS_TO_CREATE = HOSTS_TO_CREATE * 3;
+    private static final int CLOUDLETS_TO_CREATE = 500; // for creating cloudlets at one tijme instant
     private static final int DYNAMIC_CLOUDLETS_TO_CREATE = 0;
     private static final int HOST_PES = 8;
     private static final int VM_PES = 4;
     private static final int CLOUDLET_PES = 1;
     private double TIME_TO_CREATE_NEW_CLOUDLET = 0;
-    private double MAX_TIME_FOR_CLOUDLET_ARRIVAL = 1000; // -1 indicates cloudlets were created using MAX_CLOUDLETS_TO_CREATE;
-    private static double MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE = 2;
+    private double MAX_TIME_FOR_CLOUDLET_ARRIVAL = 0 ; //1000; // -1 indicates cloudlets were created using MAX_CLOUDLETS_TO_CREATE;
+    private static double MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE = 0;//2;
     private static final int MAX_CLOUDLETS_TO_CREATE = 500; //-1 here indicate that max time 'MAX_TIME_FOR_CLOUDLET_ARRIVAL' was used to create maximum cloudlets
     double subTime = 0;
 
@@ -204,7 +204,7 @@ public class DatacenterBrokerSchedulingExample {
         /**
          * number of repetitions
          */
-        int numRep = 1;
+        int numRep = 3;
         final boolean verbose = true;
         final boolean showAllHostUtilizationHistoryEntries = true;
         int[] rateArr = new int[]{0, 1, 2, 4, 6, 8, 10, 12, 14, 15};
@@ -217,39 +217,39 @@ public class DatacenterBrokerSchedulingExample {
             for(int i = 0; i < numRep; i++) {
                 final long seed = System.currentTimeMillis();//0
 
-//                // BestFit
-//                cloudletCreated = false;
-//                final CloudSim simulation1 = new CloudSim();
-//                final UniformDistr random1 = new UniformDistr(0, 1, seed);
-//                final DatacenterBroker broker1 = new DatacenterBrokerPowerAware(simulation1);
-//                new DatacenterBrokerSchedulingExample(broker1, random1, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
-//    //            logFileCreated = true;
-//    //        }
+                // BestFit
+                cloudletCreated = false;
+                final CloudSim simulation1 = new CloudSim();
+                final UniformDistr random1 = new UniformDistr(0, 1, seed);
+                final DatacenterBroker broker1 = new DatacenterBrokerPowerAware(simulation1);
+                new DatacenterBrokerSchedulingExample(broker1, random1, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
+                //            logFileCreated = true;
+                //        }
 
                 // Heuristic
-    //        logFileCreated = false;
-    ////        for(int i = 1; i < numRep; i++) {
+//                        logFileCreated = false;
+                ////        for(int i = 1; i < numRep; i++) {
                 cloudletCreated = false;
                 final CloudSim simulation0 = new CloudSim();
                 final UniformDistr random0 = new UniformDistr(0, 1, seed);
                 final DatacenterBrokerHeuristic broker0 = createHeuristicBroker(simulation0, random0);
                 new DatacenterBrokerSchedulingExample(broker0, random0, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
-    //            logFileCreated = true;
-    //        }
+                //            logFileCreated = true;
+                //        }
 
-//                // Simple - RoundRobin
-//    //        logFileCreated = false;
-//    //            for(int i = 1; i < numRep; i++) {
-//                cloudletCreated = false;
-//                final CloudSim simulation2 = new CloudSim();
-//                final UniformDistr random2 = new UniformDistr(0, 1, seed);
-//                final DatacenterBroker broker2 = new DatacenterBrokerSimple(simulation2);
-//                new DatacenterBrokerSchedulingExample(broker2, random2, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
+                // Simple - RoundRobin
+//                        logFileCreated = false;
+                //            for(int i = 1; i < numRep; i++) {
+                cloudletCreated = false;
+                final CloudSim simulation2 = new CloudSim();
+                final UniformDistr random2 = new UniformDistr(0, 1, seed);
+                final DatacenterBroker broker2 = new DatacenterBrokerSimple(simulation2);
+                new DatacenterBrokerSchedulingExample(broker2, random2, verbose, showAllHostUtilizationHistoryEntries, i, clMax);
 
 
-//                logFileCreated = true;
-             }
-            logFileCreated = false;
+                logFileCreated = true;
+            }
+//            logFileCreated = false;
 
         }
     }
@@ -276,9 +276,7 @@ public class DatacenterBrokerSchedulingExample {
 
         vmList = createVms(random);
         cloudletList = createCloudlets(random);
-//        cloudletList = getCloudletListfromPoisson(random);
-
-
+//      cloudletList = getCloudletListfromPoisson(random);
             /*Vms and cloudlets are created before the Datacenter and host
             because the example is defining the hosts based on VM requirements
             and VMs are created based on cloudlet requirements.*/
@@ -325,30 +323,30 @@ public class DatacenterBrokerSchedulingExample {
 ////        }
 //
 
-        PoissonDistr poisson = new PoissonDistr(3.33, 0);
-        int totalArrivedCustomers = 0;
-        int numcl = 1;
-        int maxEvnt = 500;
-        double[] sampTime = new double[maxEvnt+2];
-        genEvtTime = new double[maxEvnt+2];
-        int i=1;
-        genEvtTime[0] = simulation.clock();
-        while( totalArrivedCustomers <= maxEvnt){
-//            poisson.setK(randClMax[i]);
-            int numK =  poisson.getK();
-            totalArrivedCustomers += poisson.getK();
-            double intTime =poisson.sample();
-            double intTimsec = intTime/60;
-            double prevTime = sampTime[i-1];
-            double prevTimsec = prevTime/60;
-            double kj = 3.1+1.2;
-            sampTime[i] = prevTimsec + intTimsec;
-            genEvtTime[i] = genEvtTime[i-1] +sampTime[i];
-//            double evtProb = poisson.eventsArrivalProbability();
-//            totalArrivedCustomers +=numcl;
-            i=i+1;
-//            System.out.printf("%d cloudlets arrived at minute %f\n", poisson.getK(), sampTime);
-        }
+//        PoissonDistr poisson = new PoissonDistr(3.33, 0);
+//        int totalArrivedCustomers = 0;
+//        int numcl = 1;
+//        int maxEvnt = 500;
+//        double[] sampTime = new double[maxEvnt+2];
+//        genEvtTime = new double[maxEvnt+2];
+//        int i=1;
+//        genEvtTime[0] = simulation.clock();
+//        while( totalArrivedCustomers <= maxEvnt){
+////            poisson.setK(randClMax[i]);
+//            int numK =  poisson.getK();
+//            totalArrivedCustomers += poisson.getK();
+//            double intTime =poisson.sample();
+//            double intTimsec = intTime/60;
+//            double prevTime = sampTime[i-1];
+//            double prevTimsec = prevTime/60;
+//            double kj = 3.1+1.2;
+//            sampTime[i] = prevTimsec + intTimsec;
+//            genEvtTime[i] = genEvtTime[i-1] +sampTime[i];
+////            double evtProb = poisson.eventsArrivalProbability();
+////            totalArrivedCustomers +=numcl;
+//            i=i+1;
+////            System.out.printf("%d cloudlets arrived at minute %f\n", poisson.getK(), sampTime);
+//        }
 
 //        simulation.addOnClockTickListener(this::createDynamicCloudlet);
 
@@ -363,8 +361,9 @@ public class DatacenterBrokerSchedulingExample {
             // Now get arrival, execution and finish time for cloudlets
 //            Path rootPath = Paths.get("/home/humaira/Repositories/cloudsimPlusResults/");
             try {
-                String filePath = "/home/humaira/Repositories/cloudsimPlusResults/mappingComparison/cloudletsData/";
-                String timeFileName = filePath + broker.getClass().getSimpleName() + "_CloudletTimeData_rep" + rep + "_arrvRate" + MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE + "_totCloudlets"+ MAX_CLOUDLETS_TO_CREATE + "_arrTime" + MAX_TIME_FOR_CLOUDLET_ARRIVAL;
+//                File desktopDir = new File(System.getProperty("user.home"), "Desktop");
+                String filePath = "C:\\Users\\humai\\MeasuredData\\mappingComparison\\cloudletsData\\"; //""/home/humaira/Repositories/cloudsimPlusResults/mappingComparison/cloudletsData/";
+                String timeFileName = filePath + broker.getClass().getSimpleName() + "_CloudletTimeData_rep" + rep + "_arrvRate" + MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE + "_totCloudlets"+ cloudletList.size() + "_arrTime" + MAX_TIME_FOR_CLOUDLET_ARRIVAL;
                 // create FileWriter object with file as parameter
                 FileWriter outputfile = new FileWriter(timeFileName, false);
                 // create CSVWriter with ',' as separator
@@ -373,7 +372,7 @@ public class DatacenterBrokerSchedulingExample {
                     CSVWriter.DEFAULT_ESCAPE_CHARACTER,
                     CSVWriter.DEFAULT_LINE_END);
                 // adding header to csv
-                String[] header = { "Cloudlet Id", "Cloudlet Total Length", "Arrival Time", "Execution Time", "Finish Time", "Processing Time" , "Host ID", "VM Id"};
+                String[] header = { "Cloudlet Id", "Cloudlet Total Length", "Arrival Time", "Execution Time", "Finish Time", "Processing Time", "Due Time", "Host ID", "VM Id"};
                 writer.writeNext(header);
 //              // create a List which contains String array
                 List<String[]> data = new ArrayList<String[]>();
@@ -382,31 +381,16 @@ public class DatacenterBrokerSchedulingExample {
                     data.add(new String[]{Double.toString(cloudlet.getId()), Double.toString(cloudlet.getTotalLength()),
                         Double.toString(cloudlet.getSubmissionTime()), Double.toString(cloudlet.getExecStartTime()),
                         Double.toString(cloudlet.getFinishTime()), String.valueOf(cloudlet.getActualCpuTime()),
+                        String.valueOf(cloudlet.getLifeTime()),
                         String.valueOf(cloudlet.getVm().getHost().getId()), String.valueOf(cloudlet.getVm().getId())});
                     int hInd = (int)cloudlet.getVm().getHost().getId();
                     double jh = (double)cloudlet.getTotalLength();
-//                    double kj;
-//                    if(hostsTotClLen.size() != 0 && hostsTotClLen.size() < hInd )
-//                    {
-//                        double jjn = hostsTotClLen.get(hInd);
-//                        kj = jh +jjn;
-//                    }
-//                    else {
-//                        kj = jh;
-//
-//                    }
-//
-//                    hostsTotClLen.add(hInd,kj);
-
                     hostsTotClLen[hInd] =  hostsTotClLen[hInd] + jh;
-
                 }
                 writer.writeAll(data);
                 writer.close();
                 numOfFinishedCloudlets = finishedCloudlets.size();
                 System.out.printf("total cloudlet finished services : %d\n", numOfFinishedCloudlets);
-
-
             }
             catch (IOException e) {
                 // TODO Auto-generated catch block
@@ -420,8 +404,6 @@ public class DatacenterBrokerSchedulingExample {
         System.out.printf("utilization error count : %d\n", utiErrCount);
 //        System.out.printf("Below is the total cloud length on each host\n");
 //        hostsTotClLen.forEach(System.out::println);
-
-
     }
 
 
@@ -432,9 +414,6 @@ public class DatacenterBrokerSchedulingExample {
         broker.setHeuristic(heuristic);
         return broker;
     }
-
-
-
 
     private List<Cloudlet> getCloudletListfromPoisson(final ContinuousDistribution rand){
         //creates a poisson process that checks the arrival of 1 (k) cloudlet
@@ -449,8 +428,6 @@ public class DatacenterBrokerSchedulingExample {
             totalArrivedCustomers +=numcl;
             Cloudlet cloudlet = createCloudlet(getRandomPesNumber(4, rand));  //CLOUDLET_PES
             cloudlet.setSubmissionDelay(0); //(sampTime);
-            cloudlet.setSubmissionTime(0);
-            cloudlet.setLifeTime(5);//(sampTime);
             cloudletList.add(cloudlet);
 
 //            System.out.printf("%d cloudlets arrived at minute %f\n", poisson.getK(), sampTime);
@@ -465,7 +442,7 @@ public class DatacenterBrokerSchedulingExample {
 //            cloudlet.setSubmissionDelay(minute);
 //            cloudlet.setSubmissionTime(minute);
 
-//        cloudlet.setLifeTime(5);
+//        cloudlet.setLifeTime(randDueTime);
 //            cloudletList.add(cloudlet);
 ////               }
 //                System.out.printf("%d cloudlets arrived at minute %d\n", poisson.getK(), minute);
@@ -486,7 +463,6 @@ public class DatacenterBrokerSchedulingExample {
             cloudlet.setSubmissionDelay(0); //(sampTime);
 //            System.out.printf("\ncurrent time is %.4f\n",simulation.clock());
             cloudlet.setSubmissionTime(simulation.clock()); // take teh clock time here
-            cloudlet.setLifeTime(5);//(sampTime);
             cloudletList.add(cloudlet);
         }
 
@@ -535,6 +511,7 @@ public class DatacenterBrokerSchedulingExample {
         return (int)(uniform >= 1 ? uniform % maxPesNumber : uniform * maxPesNumber) + 1;
     }
 
+
     private DatacenterSimple createDatacenter(final Simulation sim) {
 //        final List<Host> hostList = new ArrayList<>();
         for(int i = 0; i < HOSTS_TO_CREATE; i++) {
@@ -551,28 +528,6 @@ public class DatacenterBrokerSchedulingExample {
 
     }
 
-    /**
-     * Define a specific policy to randomly select a suitable Host to place a given VM.
-     * It implements a {@link Comparator} that randomly sorts the Hosts by returning a value between [-1..1]
-     * (according to comparator requirements).
-     * Hosts' attributes aren't even considered to ensure the randomness.
-     *
-     * @param vmAllocationPolicy the {@link VmAllocationPolicy} containing Host allocation information
-     * @param vm the {@link Vm} to find a host to be placed
-     * @return an {@link Optional} that may contain a Host in which to place a Vm, or an {@link Optional#empty()}
-     *         {@link Optional} if not suitable Host was found.
-     */
-    private Optional<Host> findEnergyEffectiveHostForVm(VmAllocationPolicy vmAllocationPolicy, Vm vm) {
-        double thr = 4000;
-
-        Optional<Host> mhost = vmAllocationPolicy
-            .getHostList()
-            .stream()
-            .filter(host -> (host.isSuitableForVm(vm) )) //&& (host.getAvailableMips() >= thr)
-            .min(Comparator.comparing(host -> (host.getPowerModel().getPower(host.getFreePesNumber()/host.getPeList().size()) <= 75)));
-
-        return mhost;
-    }
 
     private Host createHost() {
         final long mips = 1000; // capacity of each CPU core (in Million Instructions per Second)
@@ -612,8 +567,9 @@ public class DatacenterBrokerSchedulingExample {
         final long length = 400000; //in Million Structions (MI)
         final long fileSize = 300; //Size (in bytes) before execution
         final long outputSize = 300; //Size (in bytes) after execution
-        CLOUDLET_LENGTH = ran.nextInt(1000000) + 400000; //4000; //
-        subTime = 5; // lets say each cloudlet will expire if not assigned within 5sec if its arrival.
+        CLOUDLET_LENGTH = ran.nextInt(100000) + 4000; //4000; //
+        final double randDueTime = ran.nextInt((CLOUDLET_LENGTH/1000)+5); // cloudlet length divided by average VM MIPs capacity
+
         //Defines how CPU, RAM and Bandwidth resources are used
         //Sets the same utilization model for all these resources.
         final UtilizationModel utilization = new UtilizationModelFull();
@@ -621,7 +577,7 @@ public class DatacenterBrokerSchedulingExample {
         return new CloudletSimple(createdCloudlets++, CLOUDLET_LENGTH, numberOfPes) // lets suppose life time is 5 sec for now, will later add random for different task using variable
             .setFileSize(fileSize)
             .setOutputSize(outputSize)
-            .setUtilizationModel(utilization).setSubmissionTime(subTime);//.setSubmissionTime(simulation.clock());
+            .setUtilizationModel(utilization).setSubmissionTime(subTime).setLifeTime(randDueTime);//.setSubmissionTime(simulation.clock());
     }
 
     private void createCloudletsFromWorkloadFile() {
@@ -654,8 +610,7 @@ public class DatacenterBrokerSchedulingExample {
 ////            for (int i = 0; i < DYNAMIC_CLOUDLETS_TO_CREATE; i++) {
 //        Cloudlet cloudlet = createCloudlet(getRandomPesNumber(4, rand));  //CLOUDLET_PES
 //        cloudlet.setSubmissionDelay(0); //(sampTime);
-//        cloudlet.setSubmissionTime(0);
-//        cloudlet.setLifeTime(5);//(sampTime);
+
 //        cloudletList.add(cloudlet);
 ////            }
 //            List<Double> getGenCL = Arrays.stream(genEvtTime).filter(x-> 1 > x && x > 2).collect(Collectors.toList());
@@ -665,7 +620,7 @@ public class DatacenterBrokerSchedulingExample {
 //                            Cloudlet cloudlet = createCloudlet(getRandomPesNumber(4, rand));  //CLOUDLET_PES
 //            cloudlet.setSubmissionDelay(0); //(sampTime);
 //            cloudlet.setSubmissionTime(0);
-//            cloudlet.setLifeTime(5);//(sampTime);
+//            cloudlet.setLifeTime(randDueTime);//(sampTime);
 //            cloudletList.add(cloudlet);
 //
 //            broker.submitCloudletList(cloudletList);
@@ -676,26 +631,8 @@ public class DatacenterBrokerSchedulingExample {
 
     }
 
-    private double computeRoundRobinMappingCost(boolean doPrint) {
-        CloudletToVmMappingSimulatedAnnealing heuristic =
-            new CloudletToVmMappingSimulatedAnnealing(SA_INITIAL_TEMPERATURE, random);
-        final CloudletToVmMappingSolution roundRobinSolution = new CloudletToVmMappingSolution(heuristic);
-        int i = 0;
-        for (Cloudlet c : cloudletList) {
-            //cyclically selects a Vm (as in a circular queue)
-            roundRobinSolution.bindCloudletToVm(c, vmList.get(i));
-            i = (i+1) % vmList.size();
-        }
-
-        if (doPrint) {
-            printSolution(
-                "Round robin solution used by DatacenterBrokerSimple class",
-                roundRobinSolution, false);
-        }
-        return roundRobinSolution.getCost();
-    }
-
     private double computeBrokersMappingCost(boolean doPrint) {
+        // this heuristic object here is just a dummy for bestfit and roundrobin, as we just wanted to get the VMtocloudlets map as a 'solutions' to get its cost
         CloudletToVmMappingSimulatedAnnealing heuristic =
             new CloudletToVmMappingSimulatedAnnealing(SA_INITIAL_TEMPERATURE, random);
 
@@ -834,11 +771,11 @@ public class DatacenterBrokerSchedulingExample {
     }
 
     private void createLogFile() {
-        String filePath = "/home/humaira/Repositories/cloudsimPlusResults/mappingComparison/";
+        String filePath = "C:\\Users\\humai\\MeasuredData\\mappingComparison\\"; // "/home/humaira/Repositories/cloudsimPlusResults/mappingComparison/";
         try {
             String filename = broker.getClass().getSimpleName();
             // create FileWriter object with file as parameter
-            String logFileName = filePath + filename + "_SimulationResults" + "_arrvRate" + MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE + "_totCloudlets"+ MAX_CLOUDLETS_TO_CREATE + "_arrTime" + MAX_TIME_FOR_CLOUDLET_ARRIVAL;
+            String logFileName = filePath + filename + "_SimulationResults" + "_arrvRate" + MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE + "_totCloudlets"+ cloudletList.size() + "_arrTime" + MAX_TIME_FOR_CLOUDLET_ARRIVAL;
             FileWriter outputfile = new FileWriter(logFileName, true);
 
             // create CSVWriter with '|' as separator
@@ -850,7 +787,7 @@ public class DatacenterBrokerSchedulingExample {
             // adding header to csv
             String[] header = { "No. of Repetition", "Broker Name", "Simulation Finish Time", "Total No. of Hosts",
                 "No. of Idle Hosts", "Sum of Cloudlet Lengths on Hosts", "No. of VMs", "No. of Cloudets Submitted",
-                "No. Cloudlets Finished", "Power Consumed(kWh)", "Cost" };
+                "No. Cloudlets Finished", "Power Consumed(kWh)" }; // "Cost"
             writer.writeNext(header);
 
             writer.close();
@@ -862,11 +799,11 @@ public class DatacenterBrokerSchedulingExample {
     }
 
     private void datalogging(double hostPowkWh, double brokersMappingCost, int rep, int finishedCLoudlets) {
-        String filePath = "/home/humaira/Repositories/cloudsimPlusResults/mappingComparison/";
+        String filePath = "C:\\Users\\humai\\MeasuredData\\mappingComparison\\"; //"/home/humaira/Repositories/cloudsimPlusResults/mappingComparison/";
         try {
             String filename = broker.getClass().getSimpleName();
             // create FileWriter object with file as parameter
-            String logFileName = filePath + filename + "_SimulationResults" + "_arrvRate" + MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE + "_totCloudlets"+ MAX_CLOUDLETS_TO_CREATE + "_arrTime" + MAX_TIME_FOR_CLOUDLET_ARRIVAL;
+            String logFileName = filePath + filename + "_SimulationResults" + "_arrvRate" + MEAN_CUSTOMERS_ARRIVAL_PER_MINUTE + "_totCloudlets"+ cloudletList.size() + "_arrTime" + MAX_TIME_FOR_CLOUDLET_ARRIVAL;
             // create FileWriter object with file as parameter
             FileWriter outputfile = new FileWriter(logFileName, true);
             // create CSVWriter with '|' as separator
@@ -887,7 +824,7 @@ public class DatacenterBrokerSchedulingExample {
             String[] data = { Integer.toString(rep), broker.getClass().getSimpleName(),
                 String.valueOf(simulation.getSimFinishTime()), Double.toString(arrAllHostPow.size()),
                 Double.toString(idleHost), String.valueOf(hostTotIns), String.valueOf(vmList.size()), String.valueOf(cloudletList.size()),
-                String.valueOf(finishedCLoudlets), String.valueOf(hostPowkWh), String.valueOf(brokersMappingCost)};
+                String.valueOf(finishedCLoudlets), String.valueOf(hostPowkWh)}; // String.valueOf(brokersMappingCost)
             writer.writeNext(data);
             writer.close();
         }

@@ -778,6 +778,12 @@ public interface Cloudlet extends UniquelyIdentifiable, Comparable<Cloudlet>, Cu
     Cloudlet setLifeTime(double lifeTime);
 
     /**
+     * To get the lfetime of the CLoudlets
+     */
+
+    double getLifeTime();
+
+    /**
      * Set the expected execution time of the cloudlet
      */
 

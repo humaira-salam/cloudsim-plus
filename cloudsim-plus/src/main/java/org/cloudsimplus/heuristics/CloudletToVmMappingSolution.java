@@ -124,8 +124,13 @@ public class CloudletToVmMappingSolution implements HeuristicSolution<Map<Cloudl
         this.recomputeCost = false;
     }
 
-    // the below is computing he cost of VM only if they cloudlet allocated to them
+    // the below is computing the cost of VM only if they cloudlet allocated to them
     private double computeCostOfAllVms() {
+//
+//            return groupCloudletsByVm()
+//                .entrySet()
+//                .stream()
+//                .mapToDouble(this::getVmCost).findFirst().orElse(0);
         double[] costlist = groupCloudletsByVm()
             .entrySet()
             .stream()
@@ -134,12 +139,13 @@ public class CloudletToVmMappingSolution implements HeuristicSolution<Map<Cloudl
         double underCost = Arrays.stream(costlist).filter(x->x>0).sum();
         double overCost = Arrays.stream(costlist).filter(x->x<0).sum();
         double maxUtiliz = Arrays.stream(costlist).filter(x->x==0).count();
+        double totalcost = underCost+Math.abs(overCost);
 
-        return groupCloudletsByVm()
-                .entrySet()
-                .stream()
-                .mapToDouble(this::getVmCost)
-                .sum();
+        return totalcost;
+//        return groupCloudletsByVm()
+//            .entrySet()
+//            .stream()
+//            .mapToDouble(this::getVmCost).sum();
     }
 
     /**
@@ -190,6 +196,7 @@ public class CloudletToVmMappingSolution implements HeuristicSolution<Map<Cloudl
     public double getVmCost(final Map.Entry<Vm, List<Map.Entry<Cloudlet, Vm>>> entry) {
         final Vm vm = entry.getKey();
         final List<Cloudlet> cloudlets = convertListOfMapEntriesToListOfCloudlets(entry.getValue());
+//        return getClLatenessCost(cloudlets);
         return getVmCost(vm, cloudlets);
     }
 
@@ -207,10 +214,17 @@ public class CloudletToVmMappingSolution implements HeuristicSolution<Map<Cloudl
         double cmPe = vm.getNumberOfPes();
         double clPe =  getTotalCloudletsPes(cloudlets);
         return vm.getNumberOfPes() - getTotalCloudletsPes(cloudlets);
-
-
-
     }
+
+    public double getClLatenessCost(final List<Cloudlet> cloudlets) {
+        double maxLateness = cloudlets
+            .stream()
+            .mapToDouble(Cloudlet::getFinishTime).max().orElse(0);
+//        double clPe =  getTotalCloudletsPes(cloudlets);
+        return  maxLateness;
+    }
+
+
 
     private List<Cloudlet> convertListOfMapEntriesToListOfCloudlets(final List<Map.Entry<Cloudlet, Vm>> entriesList) {
         return entriesList

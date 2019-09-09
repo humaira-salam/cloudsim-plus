@@ -21,11 +21,12 @@ import org.cloudsimplus.listeners.DatacenterBrokerEventInfo;
 import org.cloudsimplus.listeners.EventInfo;
 import org.cloudsimplus.listeners.EventListener;
 import org.cloudsimplus.traces.google.GoogleTaskEventsTraceReader;
-import sun.awt.X11.XSizeHints;
+//import sun.awt.X11.XSizeHints;
 
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -80,7 +81,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
     private final List<Vm> vmCreatedList;
 
     /** @see #getCloudletWaitingList() */
-    private final List<Cloudlet> cloudletWaitingList;
+    private List<Cloudlet> cloudletWaitingList;
 
     /** @see #getCloudletSubmittedList() */
     private final List<Cloudlet> cloudletSubmittedList;
@@ -90,6 +91,9 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
     /** @see #getCloudletCreatedList() () */
     private List<Cloudlet> cloudletsCreatedList;
+
+
+
 
     /**
      * Checks if the last time checked, there were waiting cloudlets or not.
@@ -934,19 +938,27 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
          */
 
         final List<Cloudlet> successfullySubmitted = new ArrayList<>();
-        int quesize = 10;
-        boolean allowedCl = (cloudletWaitingList.size()/10) < 1;
-        List<Cloudlet> cloudletsQueue;
-        if (allowedCl)
-        {
-            cloudletsQueue = cloudletWaitingList;
+//        int quesize = 10;
+//        // check queue and do not extract cloudlets more than its queue size
+//        boolean allowedCl = (cloudletWaitingList.size()/10) < 1;
+//        List<Cloudlet> cloudletsQueue;
+//        if (allowedCl)
+//        {
+//            cloudletsQueue = cloudletWaitingList;
+//
+//        }
+//        else {
+//             cloudletsQueue = cloudletWaitingList.subList(0, quesize);
+//        }
 
-        }
-        else {
-             cloudletsQueue = cloudletWaitingList.subList(0, quesize);
-        }
 
-        for (final Cloudlet cloudlet : cloudletsQueue) {
+            //do below sorting just for my algorithm not for others
+        List<Cloudlet> latenessArrCloudlet =cloudletWaitingList.stream().sorted(Comparator.comparingDouble(x-> (x.getLifeTime()+ ((x.getLength())/1000)))).sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+//
+        cloudletWaitingList = latenessArrCloudlet;
+
+        // Below is now thw normal procedure of queue access for all algorithms.
+        for (final Cloudlet cloudlet : cloudletWaitingList) {
             final CustomerEntityAbstract entity = (CustomerEntityAbstract) cloudlet;
             if (!entity.getLastTriedDatacenter().equals(Datacenter.NULL)) {
                 continue;
@@ -972,10 +984,11 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
                 successfullySubmitted.add(cloudlet);
 //            cloudletWaitingList.remove(cloudlet);
         }
-
         cloudletWaitingList.removeAll(successfullySubmitted);
         List<Cloudlet> waitingcle= cloudletWaitingList;
+
         if (cloudletWaitingList.isEmpty()) {
+            int donecl =  cloudletsCreatedList.size();
             allWaitingCloudletsSubmittedToVm();
         }
     }

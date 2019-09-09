@@ -634,6 +634,13 @@ public abstract class CloudletAbstract extends CustomerEntityAbstract implements
     }
 
     /**
+     * Get lfetime of the cloudlet
+     */
+    public double getLifeTime(){
+        return lifeTime;
+    }
+
+    /**
      * set the expexted execution time of the cloudlets
      * @param expExecTime
      * @return
