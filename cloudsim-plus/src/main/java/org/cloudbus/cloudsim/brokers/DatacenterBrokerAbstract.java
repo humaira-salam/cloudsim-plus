@@ -967,16 +967,25 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 //             cloudletsQueue = cloudletWaitingList.subList(0, quesize);
 //        }
 
-
-            //do below sorting just for my algorithm not for others
+        /**
+         * Remove all teh expire cloudlets from waiting list
+         */
+        //do below sorting just for my algorithm not for others
 //        double timeNow = getSimulation().clock();
 //        List<Cloudlet> expiredCloudlets = cloudletWaitingList.stream().filter(x-> x.getLifeTime() < getSimulation().clock()).collect(Collectors.toList());
-        cloudletWaitingList.removeIf(x-> x.getLifeTime() < getSimulation().clock());
+        cloudletWaitingList.removeIf(x-> x.getLifeTime() < getSimulation().clock()); // remove cloudlets from waiting lists if expires
+        /**
+         * Check cloudlets who are reaching their deadline
+         */
+//        List<Cloudlet> aboutExpiring = ((List<Cloudlet>) cloudletWaitingList.stream().filter(x -> x.getLifeTime() <= getSimulation().clock() + 5));
+//        if(aboutExpiring.size()>0){
+//            allocateExpiringCloudlets(aboutExpiring);
+//        }
 //        expiredCloudletsCount += expiredCloudlets.size();
 
-        List<Cloudlet> latenessArrCloudlet =cloudletWaitingList.stream().sorted(Comparator.comparingDouble(x-> (x.getLifeTime()+ ((x.getLength())/1000)))).sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+//        List<Cloudlet> latenessArrCloudlet =cloudletWaitingList.stream().sorted(Comparator.comparingDouble(x-> (x.getLifeTime()+ ((x.getLength())/1000)))).sorted(Comparator.reverseOrder()).collect(Collectors.toList());
 //
-        cloudletWaitingList = latenessArrCloudlet;
+//        cloudletWaitingList = latenessArrCloudlet;
 
         // Below is now thw normal procedure of queue access for all algorithms.
         for (final Cloudlet cloudlet : cloudletWaitingList) {
@@ -1011,6 +1020,14 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
         if (cloudletWaitingList.isEmpty()) {
             int donecl =  cloudletsCreatedList.size();
             allWaitingCloudletsSubmittedToVm();
+        }
+    }
+
+    private void allocateExpiringCloudlets(List<Cloudlet> aboutExpiring){
+        for(int i = 0; i >= aboutExpiring.size();i++){
+            long reqPEs = aboutExpiring.get(i).getNumberOfPes();
+            Optional<Cloudlet> clToPause = cloudletSubmittedList.stream().filter(x->x.getNumberOfPes()>=reqPEs).sorted().findFirst();
+
         }
     }
 
