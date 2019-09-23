@@ -154,4 +154,18 @@ public interface Heuristic<S extends HeuristicSolution<?>> {
 	 * @see #solve()
 	 */
 	double getSolveTime();
+
+    /**
+     * Get the time required to find the heuristic solution
+     * @return
+     */
+     double getHeuSolFindingTime();
+
+    /**
+     * Set the time required to find the heuristic solution
+     * @return
+     */
+
+    void setHeuSolFindingTime(double modelHeuTime);
+
 }

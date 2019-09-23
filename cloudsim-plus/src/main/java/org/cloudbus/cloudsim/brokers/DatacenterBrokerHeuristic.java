@@ -6,7 +6,10 @@ import org.cloudbus.cloudsim.vms.Vm;
 import org.cloudsimplus.heuristics.CloudletToVmMappingHeuristic;
 import org.cloudsimplus.heuristics.CloudletToVmMappingSolution;
 import org.cloudsimplus.heuristics.Heuristic;
+import org.springframework.util.StopWatch;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.stream.Collectors;
 
 /**
@@ -24,6 +27,7 @@ public class DatacenterBrokerHeuristic extends DatacenterBrokerSimple {
      * @see #getHeuristic()
      */
     private CloudletToVmMappingHeuristic heuristic;
+    double indHeuTime = 0;
 
     /**
      * Creates a new DatacenterBroker object.
@@ -39,7 +43,17 @@ public class DatacenterBrokerHeuristic extends DatacenterBrokerSimple {
 
     @Override
     protected void requestDatacentersToCreateWaitingCloudlets() {
+        StopWatch stopWatch = new StopWatch();
+        double startTime = System.nanoTime();
+//        stopWatch.start();
         setupAndStartHeuristic();
+//        stopWatch.stop();
+//        modelCompTime = modelCompTime + stopWatch.getTotalTimeMillis();
+        double stopTime = System.nanoTime();
+        double intdtime = stopTime - startTime;
+        indHeuTime = indHeuTime+intdtime;
+        System.out.printf("the heu time for mapping is: %f\n", indHeuTime);
+        heuristic.setHeuSolFindingTime(indHeuTime);
         super.requestDatacentersToCreateWaitingCloudlets();
     }
 
@@ -76,7 +90,20 @@ public class DatacenterBrokerHeuristic extends DatacenterBrokerSimple {
          * Defines a fallback vm in the case the heuristic solution
          * didn't assign a Vm to the given cloudlet.
          */
+        // add timer to get model cost
+
+
+//        StopWatch stopWatch = new StopWatch();
+//        stopWatch.start();
+//
         final Vm fallbackVm = super.defaultVmMapper(cloudlet);
+
+//        stopWatch.stop();
+////        System.out.println("the stop Heu time for mapping is:\n");
+////        System.out.println(stopWatch.getTotalTimeMillis());
+//        modelCompTime = modelCompTime + stopWatch.getTotalTimeMillis();
+//
+//        System.out.printf("the Completion heru time for mapping is: %f\n", modelCompTime);
 
         //If user didn't bind this cloudlet and it has not been executed yet,
         //gets the Vm for the Cloudlet from the heuristic solution.

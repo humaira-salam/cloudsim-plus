@@ -58,18 +58,18 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
             .min(Comparator.comparingLong(x -> x.getExpectedFreePesNumber()))
             .orElse(Vm.NULL);
 
-
+        boolean passAssgn = cloudlet.getLifeTime() >= (cloudlet.getLength()/mappedVm.getMips())+cloudlet.getExecStartTime();
         // Below is the trial code to get the processing time of each cloudlet to be used for mapping
-        final Stream<Vm> mappedVmList = getVmCreatedList()
-            .stream()
-            .filter(vm -> vm.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes()); // first check if you have cores equal to required,then we can use the one VM which will run for more time already
-        final Stream<Vm> selVmList = getVmCreatedList()
-            .stream()
-            .filter(vm -> vm.getExpectedFreePesNumber() > cloudlet.getNumberOfPes()); //if above condition of equal required cores fails then check for greater one and longer running VM among those
-//        Double[] arrVm = mappedVmList.toArray(Double[]::new);
-        // for considering  execution time, all PEs of all VMs have same capacity so they will have same time on every VM,
-
-        OptionalDouble exptime = mappedVmList.mapToDouble(x -> cloudlet.getLength() / x.getMips()).findFirst();//.collect(Collectors.toList());/**/
+//        final Stream<Vm> mappedVmList = getVmCreatedList()
+//            .stream()
+//            .filter(vm -> vm.getExpectedFreePesNumber() >= cloudlet.getNumberOfPes()); // first check if you have cores equal to required,then we can use the one VM which will run for more time already
+//        final Stream<Vm> selVmList = getVmCreatedList()
+//            .stream()
+//            .filter(vm -> vm.getExpectedFreePesNumber() > cloudlet.getNumberOfPes()); //if above condition of equal required cores fails then check for greater one and longer running VM among those
+////        Double[] arrVm = mappedVmList.toArray(Double[]::new);
+//        // for considering  execution time, all PEs of all VMs have same capacity so they will have same time on every VM,
+//
+//        OptionalDouble exptime = mappedVmList.mapToDouble(x -> cloudlet.getLength() / x.getMips()).findFirst();//.collect(Collectors.toList());/**/
 
         //after getting the exect time of a clouldet which will be same for all VMs save it as a propety of cloudlet
 //
@@ -94,14 +94,14 @@ public class DatacenterBrokerPowerAware extends DatacenterBrokerSimple {
 //        }
 
 
-        if (mappedVm != Vm.NULL) {
-            LOGGER.debug("{}: {}: {} (PEs: {}) mapped to {} (available PEs: {}, tot PEs: {})",
-                getSimulation().clock(), getName(), cloudlet, cloudlet.getNumberOfPes(), mappedVm,
-                mappedVm.getExpectedFreePesNumber(), mappedVm.getFreePesNumber());
-        } else {
-            LOGGER.debug(": {}: {}: {} (PEs: {}) couldn't be mapped to any VM",
-                getSimulation().clock(), getName(), cloudlet, cloudlet.getNumberOfPes());
-        }
+//        if (mappedVm != Vm.NULL) {
+//            LOGGER.debug("{}: {}: {} (PEs: {}) mapped to {} (available PEs: {}, tot PEs: {})",
+//                getSimulation().clock(), getName(), cloudlet, cloudlet.getNumberOfPes(), mappedVm,
+//                mappedVm.getExpectedFreePesNumber(), mappedVm.getFreePesNumber());
+//        } else {
+//            LOGGER.debug(": {}: {}: {} (PEs: {}) couldn't be mapped to any VM",
+//                getSimulation().clock(), getName(), cloudlet, cloudlet.getNumberOfPes());
+//        }
         return mappedVm;
     }
 

@@ -21,6 +21,7 @@ import org.cloudsimplus.listeners.DatacenterBrokerEventInfo;
 import org.cloudsimplus.listeners.EventInfo;
 import org.cloudsimplus.listeners.EventListener;
 import org.cloudsimplus.traces.google.GoogleTaskEventsTraceReader;
+import org.springframework.util.StopWatch;
 //import sun.awt.X11.XSizeHints;
 
 import java.util.*;
@@ -131,7 +132,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
     private Cloudlet lastSubmittedCloudlet;
     private Vm lastSubmittedVm;
-
+    double modelCompTime=0;
     /**
      * @see #getVmDestructionDelayFunction()
      */
@@ -986,6 +987,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 //        List<Cloudlet> latenessArrCloudlet =cloudletWaitingList.stream().sorted(Comparator.comparingDouble(x-> (x.getLifeTime()+ ((x.getLength())/1000)))).sorted(Comparator.reverseOrder()).collect(Collectors.toList());
 //
 //        cloudletWaitingList = latenessArrCloudlet;
+        StopWatch stopWatch = new StopWatch();
 
         // Below is now thw normal procedure of queue access for all algorithms.
         for (final Cloudlet cloudlet : cloudletWaitingList) {
@@ -994,7 +996,17 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
                 continue;
             }//trying
             //selects a VM for the given Cloudlet
+            // add timer here for the model complexity measurement
+//            stopWatch.start();
+            double startTime = System.nanoTime();
             lastSelectedVm = vmMapper.apply(cloudlet);
+            //timer must stop here and keeping add value fo next time
+            double stopTime = System.nanoTime();
+            double indCompTime = stopTime - startTime;
+//            stopWatch.stop();
+////            System.out.println("the stop time for mapping is:\n");
+////            System.out.println(stopWatch.getTotalTimeMillis());
+            modelCompTime = indCompTime + modelCompTime;
             if (lastSelectedVm == Vm.NULL) {
                 logPostponingCloudletExecution(cloudlet);
                 continue;
@@ -1012,6 +1024,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
             entity.setLastTriedDatacenter(getDatacenter(lastSelectedVm));
                 cloudletsCreatedList.add(cloudlet);
                 successfullySubmitted.add(cloudlet);
+                cloudlet.setExpExecTime(cloudlet.getLength()/cloudlet.getVm().getMips());
 //            cloudletWaitingList.remove(cloudlet);
         }
         cloudletWaitingList.removeAll(successfullySubmitted);
@@ -1020,6 +1033,8 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
         if (cloudletWaitingList.isEmpty()) {
             int donecl =  cloudletsCreatedList.size();
             allWaitingCloudletsSubmittedToVm();
+            System.out.printf("the Completion time for mapping is: %f\n", modelCompTime);
+
         }
     }
 
