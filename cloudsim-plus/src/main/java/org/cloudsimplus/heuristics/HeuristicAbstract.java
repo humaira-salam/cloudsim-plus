@@ -67,7 +67,7 @@ public abstract class HeuristicAbstract<S extends HeuristicSolution<?>>  impleme
     /**
      *
      */
-    private double modelHeuTime;
+    private long modelHeuTime;
 
 	/**
 	 * Creates a heuristic.
@@ -95,22 +95,6 @@ public abstract class HeuristicAbstract<S extends HeuristicSolution<?>>  impleme
 	protected void setSolveTime(final double solveTime) {
 		this.solveTime = solveTime;
 	}
-
-    /**
-     * Set heuristic solution finding time
-     */
-    @Override
-    public void setHeuSolFindingTime(double modelHeuTime) {
-        modelHeuTime = modelHeuTime;
-    }
-
-    /**
-     * Get heuristic solution finding time
-     */
-    @Override
-    public double getHeuSolFindingTime() {
-        return modelHeuTime;
-    }
 
 	/**
 	 *

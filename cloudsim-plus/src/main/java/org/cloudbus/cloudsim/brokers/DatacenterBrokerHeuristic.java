@@ -8,8 +8,6 @@ import org.cloudsimplus.heuristics.CloudletToVmMappingSolution;
 import org.cloudsimplus.heuristics.Heuristic;
 import org.springframework.util.StopWatch;
 
-import java.time.Duration;
-import java.time.Instant;
 import java.util.stream.Collectors;
 
 /**
@@ -27,7 +25,7 @@ public class DatacenterBrokerHeuristic extends DatacenterBrokerSimple {
      * @see #getHeuristic()
      */
     private CloudletToVmMappingHeuristic heuristic;
-    double indHeuTime = 0;
+    private double totalTimeToSolve;
 
     /**
      * Creates a new DatacenterBroker object.
@@ -39,22 +37,21 @@ public class DatacenterBrokerHeuristic extends DatacenterBrokerSimple {
         super(simulation);
         setVmMapper(this::defaultVmMapper);
         heuristic = CloudletToVmMappingHeuristic.NULL;
+        totalTimeToSolve = 0;
     }
 
     @Override
     protected void requestDatacentersToCreateWaitingCloudlets() {
         StopWatch stopWatch = new StopWatch();
-        double startTime = System.nanoTime();
-//        stopWatch.start();
         setupAndStartHeuristic();
-//        stopWatch.stop();
-//        modelCompTime = modelCompTime + stopWatch.getTotalTimeMillis();
-        double stopTime = System.nanoTime();
-        double intdtime = stopTime - startTime;
-        indHeuTime = indHeuTime+intdtime;
-        System.out.printf("the heu time for mapping is: %f\n", indHeuTime);
-        heuristic.setHeuSolFindingTime(indHeuTime);
+        totalTimeToSolve = totalTimeToSolve + heuristic.getSolveTime();
+        System.out.format("The total time to solve heuristic for mapping so far is: %.15fs%n", totalTimeToSolve);
         super.requestDatacentersToCreateWaitingCloudlets();
+    }
+
+    @Override
+    public double getTotalMappingTime() {
+        return super.getTotalMappingTime() + totalTimeToSolve;
     }
 
     /**

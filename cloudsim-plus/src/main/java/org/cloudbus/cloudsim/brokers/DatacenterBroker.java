@@ -298,6 +298,13 @@ public interface DatacenterBroker extends SimEntity {
     void setVmMapper(Function<Cloudlet, Vm> vmMapper);
 
     /**
+     * Gets the total time spent in mapping Cloudlets to Vms during the complete simulation.
+     *
+     * @return the total mapping time in nano-seconds
+     */
+    double getTotalMappingTime();
+
+    /**
      * Gets a <b>read-only</b> list of cloudlets created inside some Vm.
      * @return the list of created Cloudlets
      */

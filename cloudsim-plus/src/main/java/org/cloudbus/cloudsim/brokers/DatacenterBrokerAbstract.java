@@ -27,7 +27,6 @@ import org.springframework.util.StopWatch;
 import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -72,36 +71,48 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
      */
     private Datacenter lastSelectedDc;
 
-    /** @see #getVmWaitingList() */
+    /**
+     * @see #getVmWaitingList()
+     */
     private final List<Vm> vmWaitingList;
 
-    /** @see #getVmExecList() */
+    /**
+     * @see #getVmExecList()
+     */
     private final List<Vm> vmExecList;
 
-    /** @see #getVmCreatedList() */
+    /**
+     * @see #getVmCreatedList()
+     */
     private final List<Vm> vmCreatedList;
 
-    /** @see #getCloudletWaitingList() */
+    /**
+     * @see #getCloudletWaitingList()
+     */
     private List<Cloudlet> cloudletWaitingList;
 
-    /** @see #getCloudletSubmittedList() */
+    /**
+     * @see #getCloudletSubmittedList()
+     */
     private final List<Cloudlet> cloudletSubmittedList;
 
-    /** @see #getCloudletFinishedList() */
+    /**
+     * @see #getCloudletFinishedList()
+     */
     private final List<Cloudlet> cloudletsFinishedList;
 
-    /** @see #getCloudletCreatedList() () */
+    /**
+     * @see #getCloudletCreatedList() ()
+     */
     private List<Cloudlet> cloudletsCreatedList;
 
-    /** int to count expired cloudlets
-     *
+    /**
+     * int to count expired cloudlets
      */
     int expiredCloudletsCount = 0;
 
 
-
-
-     /**
+    /**
      * Checks if the last time checked, there were waiting cloudlets or not.
      */
     private boolean wereThereWaitingCloudlets;
@@ -132,7 +143,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
     private Cloudlet lastSubmittedCloudlet;
     private Vm lastSubmittedVm;
-    double modelCompTime=0;
+    private double totalMappingTime;
     /**
      * @see #getVmDestructionDelayFunction()
      */
@@ -151,11 +162,11 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
      * Creates a DatacenterBroker giving a specific name.
      *
      * @param simulation the CloudSim instance that represents the simulation the Entity is related to
-     * @param name the DatacenterBroker name
+     * @param name       the DatacenterBroker name
      */
     public DatacenterBrokerAbstract(final CloudSim simulation, final String name) {
         super(simulation);
-        if(!name.isEmpty()) {
+        if (!name.isEmpty()) {
             setName(name);
         }
 
@@ -167,6 +178,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
         vmCreationRequests = 0;
         vmCreationAcks = 0;
+        totalMappingTime = 0;
 
         this.vmWaitingList = new ArrayList<>();
         this.vmExecList = new ArrayList<>();
@@ -198,6 +210,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
     /**
      * Update the queue on expiring of cloudlet with time
+     *
      * @param evt
      */
 
@@ -366,6 +379,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
     /**
      * Checks if all VMs submitted with no delay were created.
+     *
      * @return
      */
     private boolean allNonDelayedVmsCreated() {
@@ -415,7 +429,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
      * <p>If the delay is defined as a negative number, objects' delay
      * won't be changed.</p>
      *
-     * @param entities list of objects to set their delays
+     * @param entities        list of objects to set their delays
      * @param submissionDelay the submission delay to set
      */
     private void setDelayForEntitiesWithNoDelay(final List<? extends CustomerEntity> entities, final double submissionDelay) {
@@ -516,23 +530,23 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
      *
      * @param evt the event data
      */
-    private void processCloudletReady(final SimEvent evt){
-        final Cloudlet cloudlet = (Cloudlet)evt.getData();
-        if(cloudlet.getStatus() == Cloudlet.Status.PAUSED)
+    private void processCloudletReady(final SimEvent evt) {
+        final Cloudlet cloudlet = (Cloudlet) evt.getData();
+        if (cloudlet.getStatus() == Cloudlet.Status.PAUSED)
             logCloudletStatusChange(cloudlet, "resume execution of");
         else logCloudletStatusChange(cloudlet, "start executing");
 
         cloudlet.getVm().getCloudletScheduler().cloudletReady(cloudlet);
     }
 
-    private void processCloudletPause(final SimEvent evt){
-        final Cloudlet cloudlet = (Cloudlet)evt.getData();
+    private void processCloudletPause(final SimEvent evt) {
+        final Cloudlet cloudlet = (Cloudlet) evt.getData();
         logCloudletStatusChange(cloudlet, "deschedule (pause)");
         cloudlet.getVm().getCloudletScheduler().cloudletPause(cloudlet);
     }
 
-    private void processCloudletCancel(final SimEvent evt){
-        final Cloudlet cloudlet = (Cloudlet)evt.getData();
+    private void processCloudletCancel(final SimEvent evt) {
+        final Cloudlet cloudlet = (Cloudlet) evt.getData();
         logCloudletStatusChange(cloudlet, "cancel execution of");
         cloudlet.getVm().getCloudletScheduler().cloudletCancel(cloudlet);
     }
@@ -540,14 +554,15 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
     /**
      * Process the request to finish a Cloudlet with a indefinite length,
      * setting its length as the current number of processed MI.
+     *
      * @param evt the event data
      */
-    private void processCloudletFinish(final SimEvent evt){
-        final Cloudlet cloudlet = (Cloudlet)evt.getData();
+    private void processCloudletFinish(final SimEvent evt) {
+        final Cloudlet cloudlet = (Cloudlet) evt.getData();
         logCloudletStatusChange(cloudlet, "finish running");
         /* If the executed length is zero, it means the cloudlet processing was not updated yet.
          * This way, calls the method to update the Cloudlet's processing.*/
-        if(cloudlet.getFinishedLengthSoFar() == 0){
+        if (cloudlet.getFinishedLengthSoFar() == 0) {
             updateHostProcessing(cloudlet);
         }
 
@@ -555,7 +570,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
          * it means the Cloudlet has never started. This happens, for instance, due
          * to lack of PEs to run the Cloudlet (usually when you're using a CloudletSchedulerSpaceShared).
          * This way, sets the Cloudlet as failed. */
-        if(cloudlet.getFinishedLengthSoFar() == 0) {
+        if (cloudlet.getFinishedLengthSoFar() == 0) {
             cloudlet.getVm().getCloudletScheduler().cloudletFail(cloudlet);
             return;
         }
@@ -572,7 +587,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
          * the Cloudlet has finished.
          * A negative length makes the Cloudlet to keep running until a finish message is
          * sent to the broker. */
-        if(prevLength < 0){
+        if (prevLength < 0) {
             final double delay = cloudlet.getSimulation().getMinTimeBetweenEvents();
             final Datacenter dc = cloudlet.getVm().getHost().getDatacenter();
             dc.schedule(delay, CloudSimTags.VM_UPDATE_CLOUDLET_PROCESSING, null);
@@ -581,6 +596,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
     /**
      * Updates the processing of the Host where a Cloudlet's VM is running.
+     *
      * @param cloudlet
      */
     private void updateHostProcessing(final Cloudlet cloudlet) {
@@ -592,8 +608,8 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
         LOGGER.info("{}: {}: Request to {} {} {}received.", getSimulation().clock(), this, status, cloudlet, msg);
     }
 
-    private void processCloudletFail(final SimEvent evt){
-        final Cloudlet cloudlet = (Cloudlet)evt.getData();
+    private void processCloudletFail(final SimEvent evt) {
+        final Cloudlet cloudlet = (Cloudlet) evt.getData();
         cloudlet.getVm().getCloudletScheduler().cloudletFail(cloudlet);
     }
 
@@ -743,7 +759,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
             LOGGER.info("{}: {}: There are no postponed cloudlets to map. All created cloudlets are mapped to Vms",
                 getSimulation().clock(), getName());
         } else {
-           requestDatacentersToCreateWaitingCloudlets();
+            requestDatacentersToCreateWaitingCloudlets();
         }
 
         if (cloudlet.getVm().getCloudletScheduler().isEmpty()) {
@@ -793,12 +809,12 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
         final double delay = vmDestructionDelayFunction.apply(vm);
 
         if (vm.isCreated()) {
-            if((delay > DEF_VM_DESTRUCTION_DELAY && vm.isIdleEnough(delay)) || isFinished()) {
+            if ((delay > DEF_VM_DESTRUCTION_DELAY && vm.isIdleEnough(delay)) || isFinished()) {
                 LOGGER.info("{}: {}: Requesting Vm {} destruction.", getSimulation().clock(), getName(), vm.getId());
                 sendNow(getDatacenter(vm), CloudSimTags.VM_DESTROY, vm);
             }
 
-            if(isVmIdlenessVerificationRequired((VmSimple)vm)) {
+            if (isVmIdlenessVerificationRequired((VmSimple) vm)) {
                 getSimulation().send(
                     new CloudSimEvent(vmDestructionDelayFunction.apply(vm),
                         vm.getHost().getDatacenter(),
@@ -816,21 +832,21 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
      * Checks if an event must be sent to verify if a VM became idle.
      * That will happen when the {@link #getVmDestructionDelayFunction() VM destruction delay}
      * is set and is not multiple of the {@link Datacenter#getSchedulingInterval()}
-     *
+     * <p>
      * In such situation, that means it is required to send additional events to check if a VM became idle.
      * No additional events are required when:
      * - the VM destruction delay was not set (VMs will be destroyed only when the broker is shutdown)
      * - the delay was set and it's multiple of the scheduling interval
-     *   (VM idleness will be checked in the interval defined by the Datacenter scheduling).
-     *
+     * (VM idleness will be checked in the interval defined by the Datacenter scheduling).
+     * <p>
      * Avoiding additional messages improves performance of large scale simulations.
      *
      * @param vm the Vm to check
      * @return true if a message to check VM idleness has to be sent, false otherwise
      */
     private boolean isVmIdlenessVerificationRequired(final VmSimple vm) {
-        if(vm.hasStartedSomeCloudlet() && vm.getCloudletScheduler().isEmpty()){
-            final int schedulingInterval = (int)vm.getHost().getDatacenter().getSchedulingInterval();
+        if (vm.hasStartedSomeCloudlet() && vm.getCloudletScheduler().isEmpty()) {
+            final int schedulingInterval = (int) vm.getHost().getDatacenter().getSchedulingInterval();
             final int delay = vmDestructionDelayFunction.apply(vm).intValue();
             return delay > DEF_VM_DESTRUCTION_DELAY && (schedulingInterval <= 0 || delay % schedulingInterval != 0);
         }
@@ -926,7 +942,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
 
     private void logVmCreationRequest(final Datacenter datacenter, final boolean isFallbackDatacenter, final Vm vm) {
         final String fallbackMsg = isFallbackDatacenter ? " (due to lack of a suitable Host in previous one)" : "";
-        if(vm.getSubmissionDelay() == 0)
+        if (vm.getSubmissionDelay() == 0)
             LOGGER.info(
                 "{}: {}: Trying to create Vm {} in {}{}",
                 getSimulation().clock(), getName(), vm.getId(), datacenter.getName(), fallbackMsg);
@@ -953,95 +969,87 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
          *       a cloudlet was submitted to has the required resources?
          *       See https://github.com/manoelcampos/cloudsim-plus/issues/126
          */
-
         final List<Cloudlet> successfullySubmitted = new ArrayList<>();
-        int queuesize = 10;
-//        // check queue and do not extract cloudlets more than its queue size
-//        boolean allowedCl = (cloudletWaitingList.size()/10) < 1;
-//        List<Cloudlet> cloudletsQueue;
-//        if (allowedCl)
-//        {
-//            cloudletsQueue = cloudletWaitingList;
-//
-//        }
-//        else {
-//             cloudletsQueue = cloudletWaitingList.subList(0, quesize);
-//        }
+        //int queuesize = 10;
+        //// check queue and do not extract cloudlets more than its queue size
+        //boolean allowedCl = (cloudletWaitingList.size()/10) < 1;
+        //List<Cloudlet> cloudletsQueue;
+        //if (allowedCl)
+        //{
+        //    cloudletsQueue = cloudletWaitingList;
+        //
+        //}
+        //else {
+        //     cloudletsQueue = cloudletWaitingList.subList(0, quesize);
+        //}
 
         /**
-         * Remove all teh expire cloudlets from waiting list
+         * Remove all the expire Cloudlets from waiting list
          */
-        //do below sorting just for my algorithm not for others
-//        double timeNow = getSimulation().clock();
-//        List<Cloudlet> expiredCloudlets = cloudletWaitingList.stream().filter(x-> x.getLifeTime() < getSimulation().clock()).collect(Collectors.toList());
-        cloudletWaitingList.removeIf(x-> x.getLifeTime() < getSimulation().clock()); // remove cloudlets from waiting lists if expires
+//        cloudletWaitingList.removeIf(x -> x.getLifeTime() < getSimulation().clock()); // remove cloudlets from waiting lists if expires
+
         /**
-         * Check cloudlets who are reaching their deadline
+         * Check Cloudlets who are reaching their deadline
          */
-//        List<Cloudlet> aboutExpiring = ((List<Cloudlet>) cloudletWaitingList.stream().filter(x -> x.getLifeTime() <= getSimulation().clock() + 5));
-//        if(aboutExpiring.size()>0){
-//            allocateExpiringCloudlets(aboutExpiring);
-//        }
-//        expiredCloudletsCount += expiredCloudlets.size();
+        //List<Cloudlet> aboutExpiring = ((List<Cloudlet>) cloudletWaitingList.stream().filter(x -> x.getLifeTime() <= getSimulation().clock() + 5));
+        //if(aboutExpiring.size()>0){
+        //    allocateExpiringCloudlets(aboutExpiring);
+        //}
+        //expiredCloudletsCount += expiredCloudlets.size();
+        //
+        //List<Cloudlet> latenessArrCloudlet =cloudletWaitingList.stream().sorted(Comparator.comparingDouble(x-> (x.getLifeTime()+ ((x.getLength())/1000)))).sorted(Comparator.reverseOrder()).collect(Collectors.toList());
+        //
+        //cloudletWaitingList = latenessArrCloudlet;
 
-//        List<Cloudlet> latenessArrCloudlet =cloudletWaitingList.stream().sorted(Comparator.comparingDouble(x-> (x.getLifeTime()+ ((x.getLength())/1000)))).sorted(Comparator.reverseOrder()).collect(Collectors.toList());
-//
-//        cloudletWaitingList = latenessArrCloudlet;
-        StopWatch stopWatch = new StopWatch();
-
-        // Below is now thw normal procedure of queue access for all algorithms.
         for (final Cloudlet cloudlet : cloudletWaitingList) {
             final CustomerEntityAbstract entity = (CustomerEntityAbstract) cloudlet;
             if (!entity.getLastTriedDatacenter().equals(Datacenter.NULL)) {
                 continue;
-            }//trying
-            //selects a VM for the given Cloudlet
+            }
+
             // add timer here for the model complexity measurement
-//            stopWatch.start();
-            double startTime = System.nanoTime();
+            final long startTime = System.nanoTime();
+
+            // selects a VM for the given Cloudlet
             lastSelectedVm = vmMapper.apply(cloudlet);
+
             //timer must stop here and keeping add value fo next time
-            double stopTime = System.nanoTime();
-            double indCompTime = stopTime - startTime;
-//            stopWatch.stop();
-////            System.out.println("the stop time for mapping is:\n");
-////            System.out.println(stopWatch.getTotalTimeMillis());
-            modelCompTime = indCompTime + modelCompTime;
+            final double mappingTime = (System.nanoTime() - startTime)/1e9;
+
+            totalMappingTime = mappingTime + totalMappingTime;
+
             if (lastSelectedVm == Vm.NULL) {
                 logPostponingCloudletExecution(cloudlet);
                 continue;
             } else {
                 ((VmSimple) lastSelectedVm).setExpectedFreePesNumber(
                     lastSelectedVm.getExpectedFreePesNumber() - cloudlet.getNumberOfPes());
-//                final double hostpow = lastSelectedVm.getPowerOfHost;
             }
-
 
             logCloudletCreationRequest(cloudlet);
             cloudlet.setVm(lastSelectedVm);
             send(getDatacenter(lastSelectedVm),
                 cloudlet.getSubmissionDelay(), CloudSimTags.CLOUDLET_SUBMIT, cloudlet);
             entity.setLastTriedDatacenter(getDatacenter(lastSelectedVm));
-                cloudletsCreatedList.add(cloudlet);
-                successfullySubmitted.add(cloudlet);
-                cloudlet.setExpExecTime(cloudlet.getLength()/cloudlet.getVm().getMips());
-//            cloudletWaitingList.remove(cloudlet);
+            cloudletsCreatedList.add(cloudlet);
+            successfullySubmitted.add(cloudlet);
+            cloudlet.setExpExecTime(cloudlet.getLength() / cloudlet.getVm().getMips());
         }
         cloudletWaitingList.removeAll(successfullySubmitted);
-        List<Cloudlet> waitingcle= cloudletWaitingList;
+        List<Cloudlet> waitingcle = cloudletWaitingList;
 
         if (cloudletWaitingList.isEmpty()) {
-            int donecl =  cloudletsCreatedList.size();
+            int donecl = cloudletsCreatedList.size();
             allWaitingCloudletsSubmittedToVm();
-            System.out.printf("the Completion time for mapping is: %f\n", modelCompTime);
+            System.out.printf("The total mapping time so far is: %.15fs\n", totalMappingTime);
 
         }
     }
 
-    private void allocateExpiringCloudlets(List<Cloudlet> aboutExpiring){
-        for(int i = 0; i >= aboutExpiring.size();i++){
+    private void allocateExpiringCloudlets(List<Cloudlet> aboutExpiring) {
+        for (int i = 0; i >= aboutExpiring.size(); i++) {
             long reqPEs = aboutExpiring.get(i).getNumberOfPes();
-            Optional<Cloudlet> clToPause = cloudletSubmittedList.stream().filter(x->x.getNumberOfPes()>=reqPEs).sorted().findFirst();
+            Optional<Cloudlet> clToPause = cloudletSubmittedList.stream().filter(x -> x.getNumberOfPes() >= reqPEs).sorted().findFirst();
 
         }
     }
@@ -1051,7 +1059,7 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
             "%.2f: %s: Postponing execution of Cloudlet %d. Bind Vm %d {}.",
             getSimulation().clock(), getName(), cloudlet.getId(), cloudlet.getVm().getId());
 
-        if(cloudlet.getVm().getSubmissionDelay() > 0)
+        if (cloudlet.getVm().getSubmissionDelay() > 0)
             LOGGER.info(msg, "was requested to be created with some delay");
         else LOGGER.warn(msg, "is not available");
     }
@@ -1228,6 +1236,11 @@ public abstract class DatacenterBrokerAbstract extends CloudSimEntity implements
     @Override
     public final void setVmMapper(final Function<Cloudlet, Vm> vmMapper) {
         this.vmMapper = requireNonNull(vmMapper);
+    }
+
+    @Override
+    public double getTotalMappingTime() {
+        return totalMappingTime;
     }
 
     @Override
